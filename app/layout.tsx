@@ -17,3 +17,7 @@ export default function LoginLayout({
         </html>
     )
 }
+
+export const metadata = {
+      generator: 'v0.dev'
+    };
