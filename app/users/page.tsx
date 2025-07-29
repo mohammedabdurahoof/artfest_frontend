@@ -1,13 +1,14 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, MoreHorizontal, Edit, Trash2, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -17,208 +18,152 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Filter } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/axios"
 
 interface User {
-  id: number
-  username: string
+  id: string
+  name: string
+  email: string
   role: string
-  teamId?: number
-  teamName?: string
+  team: string
   status: "active" | "inactive"
+  avatar?: string
   createdAt: string
-}
-
-interface Role {
-  id: number
-  name: string
-}
-
-interface Team {
-  id: number
-  name: string
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
-  const [roles, setRoles] = useState<Role[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    roleId: "0", // Updated default value to be a non-empty string
-    teamId: "0", // Updated default value to be a non-empty string
+    name: "",
+    email: "",
+    role: "",
+    team: "",
+    status: "active" as "active" | "inactive",
   })
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchUsers()
-    fetchRoles()
-    fetchTeams()
   }, [])
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUsers(data)
-      } else {
-        setError("Failed to fetch users")
-      }
+      const response = await api.get("/users")
+      setUsers(response.data)
     } catch (error) {
-      setError("Network error")
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchRoles = async () => {
+  const handleAddUser = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/roles", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.post("/users", formData)
+      setUsers([...users, response.data])
+      setIsAddDialogOpen(false)
+      setFormData({ name: "", email: "", role: "", team: "", status: "active" })
+      toast({
+        title: "Success",
+        description: "User added successfully",
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setRoles(data)
-      }
     } catch (error) {
-      console.error("Failed to fetch roles")
+      toast({
+        title: "Error",
+        description: "Failed to add user",
+        variant: "destructive",
+      })
     }
   }
 
-  const fetchTeams = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/teams", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+  const handleEditUser = async () => {
+    if (!selectedUser) return
 
-      if (response.ok) {
-        const data = await response.json()
-        setTeams(data)
-      }
+    try {
+      const response = await api.put(`/users/${selectedUser.id}`, formData)
+      setUsers(users.map((user) => (user.id === selectedUser.id ? response.data : user)))
+      setIsEditDialogOpen(false)
+      setSelectedUser(null)
+      setFormData({ name: "", email: "", role: "", team: "", status: "active" })
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      })
     } catch (error) {
-      console.error("Failed to fetch teams")
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
+  const handleDeleteUser = async (userId: string) => {
     try {
-      const token = localStorage.getItem("token")
-      const url = editingUser ? `http://localhost:5001/api/users/${editingUser.id}` : "http://localhost:5001/api/users"
-
-      const method = editingUser ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
+      await api.delete(`/users/${userId}`)
+      setUsers(users.filter((user) => user.id !== userId))
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
       })
-
-      if (response.ok) {
-        fetchUsers()
-        setIsDialogOpen(false)
-        resetForm()
-      } else {
-        const data = await response.json()
-        setError(data.message || "Operation failed")
-      }
     } catch (error) {
-      setError("Network error")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this user?")) return
-
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:5001/api/users/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
       })
-
-      if (response.ok) {
-        fetchUsers()
-      } else {
-        setError("Failed to delete user")
-      }
-    } catch (error) {
-      setError("Network error")
     }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      username: "",
-      password: "",
-      roleId: "0", // Updated default value to be a non-empty string
-      teamId: "0", // Updated default value to be a non-empty string
-    })
-    setEditingUser(null)
   }
 
   const openEditDialog = (user: User) => {
-    setEditingUser(user)
+    setSelectedUser(user)
     setFormData({
-      username: user.username,
-      password: "",
-      roleId: user.role,
-      teamId: user.teamId?.toString() || "0", // Updated default value to be a non-empty string
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      team: user.team,
+      status: user.status,
     })
-    setIsDialogOpen(true)
+    setIsEditDialogOpen(true)
   }
 
   const filteredUsers = users.filter(
     (user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const getStatusColor = (status: string) => {
-    return status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-  }
-
-  if (loading && users.length === 0) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+            <p className="text-muted-foreground">Manage system users and their permissions</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -226,192 +171,231 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage system users and their access</p>
+          <p className="text-muted-foreground">Manage system users and their permissions</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add User
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>Create a new user account for the system</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter user name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="judge">Judge</SelectItem>
+                    <SelectItem value="coordinator">Coordinator</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="team">Team</Label>
+                <Select value={formData.team} onValueChange={(value) => setFormData({ ...formData, team: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="red">Red Team</SelectItem>
+                    <SelectItem value="blue">Blue Team</SelectItem>
+                    <SelectItem value="green">Green Team</SelectItem>
+                    <SelectItem value="yellow">Yellow Team</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancel
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingUser ? "Edit User" : "Add New User"}</DialogTitle>
-                <DialogDescription>
-                  {editingUser ? "Update user information" : "Create a new user account"}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="username" className="text-right">
-                      Username
-                    </Label>
-                    <Input
-                      id="username"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className="col-span-3"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="password" className="text-right">
-                      Password
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="col-span-3"
-                      required={!editingUser}
-                      placeholder={editingUser ? "Leave blank to keep current" : ""}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="role" className="text-right">
-                      Role
-                    </Label>
-                    <Select
-                      value={formData.roleId}
-                      onValueChange={(value) => setFormData({ ...formData, roleId: value })}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.id} value={role.id.toString()}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="team" className="text-right">
-                      Team
-                    </Label>
-                    <Select
-                      value={formData.teamId}
-                      onValueChange={(value) => setFormData({ ...formData, teamId: value })}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a team (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">No Team</SelectItem> // Updated value prop to be a non-empty string
-                        {teams.map((team) => (
-                          <SelectItem key={team.id} value={team.id.toString()}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Saving..." : editingUser ? "Update" : "Create"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button onClick={handleAddUser}>Add User</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>All Users</CardTitle>
-          <CardDescription>A list of all system users and their roles</CardDescription>
+          <CardDescription>A list of all users in the system</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
           </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{user.name}</div>
+                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{user.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{user.team}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.status === "active" ? "default" : "secondary"}>{user.status}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user.role}</Badge>
-                    </TableCell>
-                    <TableCell>{user.teamName || "No Team"}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(user.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="judge">Judge</SelectItem>
+                  <SelectItem value="coordinator">Coordinator</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-team">Team</Label>
+              <Select value={formData.team} onValueChange={(value) => setFormData({ ...formData, team: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="red">Red Team</SelectItem>
+                  <SelectItem value="blue">Blue Team</SelectItem>
+                  <SelectItem value="green">Green Team</SelectItem>
+                  <SelectItem value="yellow">Yellow Team</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser}>Update User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

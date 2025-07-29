@@ -1,13 +1,14 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, MoreHorizontal, Edit, Trash2, Trophy, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -17,59 +18,69 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Award, Medal } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/axios"
 
 interface Position {
-  id: number
-  category: "first" | "second" | "third"
-  isGroup: boolean
+  id: string
+  name: string
+  description: string
   points: number
-  usageCount: number
+  rank: number
+  isActive: boolean
   createdAt: string
 }
 
 interface Grade {
-  id: number
-  category: "A" | "B" | "C"
-  isGroup: boolean
-  points: number
-  usageCount: number
+  id: string
+  name: string
+  description: string
+  minScore: number
+  maxScore: number
+  color: string
+  isActive: boolean
   createdAt: string
 }
+
+const gradeColors = [
+  { value: "green", label: "Green", class: "bg-green-500" },
+  { value: "blue", label: "Blue", class: "bg-blue-500" },
+  { value: "yellow", label: "Yellow", class: "bg-yellow-500" },
+  { value: "orange", label: "Orange", class: "bg-orange-500" },
+  { value: "red", label: "Red", class: "bg-red-500" },
+  { value: "purple", label: "Purple", class: "bg-purple-500" },
+]
 
 export default function PositionsGradesPage() {
   const [positions, setPositions] = useState<Position[]>([])
   const [grades, setGrades] = useState<Grade[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false)
-  const [isGradeDialogOpen, setIsGradeDialogOpen] = useState(false)
-  const [editingPosition, setEditingPosition] = useState<Position | null>(null)
-  const [editingGrade, setEditingGrade] = useState<Grade | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isAddPositionDialogOpen, setIsAddPositionDialogOpen] = useState(false)
+  const [isEditPositionDialogOpen, setIsEditPositionDialogOpen] = useState(false)
+  const [isAddGradeDialogOpen, setIsAddGradeDialogOpen] = useState(false)
+  const [isEditGradeDialogOpen, setIsEditGradeDialogOpen] = useState(false)
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
   const [positionFormData, setPositionFormData] = useState({
-    category: "first" as "first" | "second" | "third",
-    isGroup: false,
+    name: "",
+    description: "",
     points: 0,
+    rank: 1,
+    isActive: true,
   })
   const [gradeFormData, setGradeFormData] = useState({
-    category: "A" as "A" | "B" | "C",
-    isGroup: false,
-    points: 0,
+    name: "",
+    description: "",
+    minScore: 0,
+    maxScore: 100,
+    color: "green",
+    isActive: true,
   })
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchPositions()
@@ -78,21 +89,14 @@ export default function PositionsGradesPage() {
 
   const fetchPositions = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/positions", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setPositions(data)
-      } else {
-        setError("Failed to fetch positions")
-      }
+      const response = await api.get("/positions")
+      setPositions(response.data)
     } catch (error) {
-      setError("Network error")
+      toast({
+        title: "Error",
+        description: "Failed to fetch positions",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -100,202 +104,193 @@ export default function PositionsGradesPage() {
 
   const fetchGrades = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/grades", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setGrades(data)
-      }
+      const response = await api.get("/grades")
+      setGrades(response.data)
     } catch (error) {
-      console.error("Failed to fetch grades")
+      toast({
+        title: "Error",
+        description: "Failed to fetch grades",
+        variant: "destructive",
+      })
     }
   }
 
-  const handlePositionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const handleAddPosition = async () => {
+    try {
+      const response = await api.post("/positions", positionFormData)
+      setPositions([...positions, response.data])
+      setIsAddPositionDialogOpen(false)
+      setPositionFormData({ name: "", description: "", points: 0, rank: 1, isActive: true })
+      toast({
+        title: "Success",
+        description: "Position added successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add position",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditPosition = async () => {
+    if (!selectedPosition) return
 
     try {
-      const token = localStorage.getItem("token")
-      const url = editingPosition
-        ? `http://localhost:5001/api/positions/${editingPosition.id}`
-        : "http://localhost:5001/api/positions"
-
-      const method = editingPosition ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(positionFormData),
+      const response = await api.put(`/positions/${selectedPosition.id}`, positionFormData)
+      setPositions(positions.map((position) => (position.id === selectedPosition.id ? response.data : position)))
+      setIsEditPositionDialogOpen(false)
+      setSelectedPosition(null)
+      setPositionFormData({ name: "", description: "", points: 0, rank: 1, isActive: true })
+      toast({
+        title: "Success",
+        description: "Position updated successfully",
       })
-
-      if (response.ok) {
-        fetchPositions()
-        setIsPositionDialogOpen(false)
-        resetPositionForm()
-      } else {
-        const data = await response.json()
-        setError(data.message || "Operation failed")
-      }
     } catch (error) {
-      setError("Network error")
-    } finally {
-      setLoading(false)
+      toast({
+        title: "Error",
+        description: "Failed to update position",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleGradeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const handleDeletePosition = async (positionId: string) => {
+    try {
+      await api.delete(`/positions/${positionId}`)
+      setPositions(positions.filter((position) => position.id !== positionId))
+      toast({
+        title: "Success",
+        description: "Position deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete position",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddGrade = async () => {
+    try {
+      const response = await api.post("/grades", gradeFormData)
+      setGrades([...grades, response.data])
+      setIsAddGradeDialogOpen(false)
+      setGradeFormData({ name: "", description: "", minScore: 0, maxScore: 100, color: "green", isActive: true })
+      toast({
+        title: "Success",
+        description: "Grade added successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add grade",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditGrade = async () => {
+    if (!selectedGrade) return
 
     try {
-      const token = localStorage.getItem("token")
-      const url = editingGrade
-        ? `http://localhost:5001/api/grades/${editingGrade.id}`
-        : "http://localhost:5001/api/grades"
-
-      const method = editingGrade ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(gradeFormData),
+      const response = await api.put(`/grades/${selectedGrade.id}`, gradeFormData)
+      setGrades(grades.map((grade) => (grade.id === selectedGrade.id ? response.data : grade)))
+      setIsEditGradeDialogOpen(false)
+      setSelectedGrade(null)
+      setGradeFormData({ name: "", description: "", minScore: 0, maxScore: 100, color: "green", isActive: true })
+      toast({
+        title: "Success",
+        description: "Grade updated successfully",
       })
-
-      if (response.ok) {
-        fetchGrades()
-        setIsGradeDialogOpen(false)
-        resetGradeForm()
-      } else {
-        const data = await response.json()
-        setError(data.message || "Operation failed")
-      }
     } catch (error) {
-      setError("Network error")
-    } finally {
-      setLoading(false)
+      toast({
+        title: "Error",
+        description: "Failed to update grade",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleDeletePosition = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this position?")) return
-
+  const handleDeleteGrade = async (gradeId: string) => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:5001/api/positions/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await api.delete(`/grades/${gradeId}`)
+      setGrades(grades.filter((grade) => grade.id !== gradeId))
+      toast({
+        title: "Success",
+        description: "Grade deleted successfully",
       })
-
-      if (response.ok) {
-        fetchPositions()
-      } else {
-        setError("Failed to delete position")
-      }
     } catch (error) {
-      setError("Network error")
-    }
-  }
-
-  const handleDeleteGrade = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this grade?")) return
-
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:5001/api/grades/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      toast({
+        title: "Error",
+        description: "Failed to delete grade",
+        variant: "destructive",
       })
-
-      if (response.ok) {
-        fetchGrades()
-      } else {
-        setError("Failed to delete grade")
-      }
-    } catch (error) {
-      setError("Network error")
     }
-  }
-
-  const resetPositionForm = () => {
-    setPositionFormData({
-      category: "first",
-      isGroup: false,
-      points: 0,
-    })
-    setEditingPosition(null)
-  }
-
-  const resetGradeForm = () => {
-    setGradeFormData({
-      category: "A",
-      isGroup: false,
-      points: 0,
-    })
-    setEditingGrade(null)
   }
 
   const openEditPositionDialog = (position: Position) => {
-    setEditingPosition(position)
+    setSelectedPosition(position)
     setPositionFormData({
-      category: position.category,
-      isGroup: position.isGroup,
+      name: position.name,
+      description: position.description,
       points: position.points,
+      rank: position.rank,
+      isActive: position.isActive,
     })
-    setIsPositionDialogOpen(true)
+    setIsEditPositionDialogOpen(true)
   }
 
   const openEditGradeDialog = (grade: Grade) => {
-    setEditingGrade(grade)
+    setSelectedGrade(grade)
     setGradeFormData({
-      category: grade.category,
-      isGroup: grade.isGroup,
-      points: grade.points,
+      name: grade.name,
+      description: grade.description,
+      minScore: grade.minScore,
+      maxScore: grade.maxScore,
+      color: grade.color,
+      isActive: grade.isActive,
     })
-    setIsGradeDialogOpen(true)
+    setIsEditGradeDialogOpen(true)
   }
 
-  const getPositionBadgeColor = (category: string) => {
-    const colors = {
-      first: "bg-yellow-100 text-yellow-800",
-      second: "bg-gray-100 text-gray-800",
-      third: "bg-orange-100 text-orange-800",
-    }
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800"
-  }
-
-  const getGradeBadgeColor = (category: string) => {
-    const colors = {
-      A: "bg-green-100 text-green-800",
-      B: "bg-blue-100 text-blue-800",
-      C: "bg-purple-100 text-purple-800",
-    }
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800"
-  }
-
-  const filteredPositions = positions.filter((position) =>
-    position.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredPositions = positions.filter(
+    (position) =>
+      position.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      position.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const filteredGrades = grades.filter((grade) => grade.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredGrades = grades.filter(
+    (grade) =>
+      grade.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.description.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
-  if (loading && positions.length === 0) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>
+  const getColorClass = (color: string) => {
+    const colorObj = gradeColors.find((c) => c.value === color)
+    return colorObj?.class || "bg-gray-500"
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Positions & Grades</h1>
+            <p className="text-muted-foreground">Manage competition positions and grading system</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -307,377 +302,462 @@ export default function PositionsGradesPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Positions</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{positions.length}</div>
-            <p className="text-xs text-muted-foreground">Position types</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Grades</CardTitle>
-            <Medal className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{grades.length}</div>
-            <p className="text-xs text-muted-foreground">Grade types</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Position Usage</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{positions.reduce((sum, pos) => sum + pos.usageCount, 0)}</div>
-            <p className="text-xs text-muted-foreground">Total assignments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Grade Usage</CardTitle>
-            <Medal className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{grades.reduce((sum, grade) => sum + grade.usageCount, 0)}</div>
-            <p className="text-xs text-muted-foreground">Total assignments</p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Tabs defaultValue="positions" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="positions" className="flex items-center gap-2">
-            <Award className="h-4 w-4" />
-            Positions
-          </TabsTrigger>
-          <TabsTrigger value="grades" className="flex items-center gap-2">
-            <Medal className="h-4 w-4" />
-            Grades
-          </TabsTrigger>
+          <TabsTrigger value="positions">Positions</TabsTrigger>
+          <TabsTrigger value="grades">Grades</TabsTrigger>
         </TabsList>
 
         <TabsContent value="positions" className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search positions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="max-w-sm"
               />
             </div>
-            <Dialog open={isPositionDialogOpen} onOpenChange={setIsPositionDialogOpen}>
+            <Dialog open={isAddPositionDialogOpen} onOpenChange={setIsAddPositionDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={resetPositionForm}>
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button>
+                  <Trophy className="mr-2 h-4 w-4" />
                   Add Position
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{editingPosition ? "Edit Position" : "Add New Position"}</DialogTitle>
-                  <DialogDescription>
-                    {editingPosition ? "Update position details" : "Create a new position type"}
-                  </DialogDescription>
+                  <DialogTitle>Add New Position</DialogTitle>
+                  <DialogDescription>Create a new competition position</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handlePositionSubmit}>
-                  <div className="grid gap-4 py-4">
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="positionCategory" className="text-right">
-                        Category
-                      </Label>
-                      <Select
-                        value={positionFormData.category}
-                        onValueChange={(value) =>
-                          setPositionFormData({ ...positionFormData, category: value as "first" | "second" | "third" })
-                        }
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select position category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="first">First</SelectItem>
-                          <SelectItem value="second">Second</SelectItem>
-                          <SelectItem value="third">Third</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="positionPoints" className="text-right">
-                        Points
-                      </Label>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="position-name">Position Name</Label>
+                    <Input
+                      id="position-name"
+                      value={positionFormData.name}
+                      onChange={(e) => setPositionFormData({ ...positionFormData, name: e.target.value })}
+                      placeholder="Enter position name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="position-description">Description</Label>
+                    <Textarea
+                      id="position-description"
+                      value={positionFormData.description}
+                      onChange={(e) => setPositionFormData({ ...positionFormData, description: e.target.value })}
+                      placeholder="Enter position description"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="position-points">Points</Label>
                       <Input
-                        id="positionPoints"
+                        id="position-points"
                         type="number"
                         value={positionFormData.points}
                         onChange={(e) =>
                           setPositionFormData({ ...positionFormData, points: Number.parseInt(e.target.value) || 0 })
                         }
-                        className="col-span-3"
-                        required
+                        placeholder="Points awarded"
                       />
                     </div>
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="positionIsGroup" className="text-right">
-                        Group Position
-                      </Label>
-                      <div className="col-span-3">
-                        <Checkbox
-                          id="positionIsGroup"
-                          checked={positionFormData.isGroup}
-                          onCheckedChange={(checked) =>
-                            setPositionFormData({ ...positionFormData, isGroup: !!checked })
-                          }
-                        />
-                      </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="position-rank">Rank</Label>
+                      <Input
+                        id="position-rank"
+                        type="number"
+                        value={positionFormData.rank}
+                        onChange={(e) =>
+                          setPositionFormData({ ...positionFormData, rank: Number.parseInt(e.target.value) || 1 })
+                        }
+                        placeholder="Position rank"
+                      />
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Saving..." : editingPosition ? "Update" : "Create"}
-                    </Button>
-                  </DialogFooter>
-                </form>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddPositionDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddPosition}>Add Position</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>All Positions</CardTitle>
-              <CardDescription>Manage competition position types and their point values</CardDescription>
+              <CardTitle>Competition Positions</CardTitle>
+              <CardDescription>Manage positions and their point values</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead>Usage</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Points</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPositions.map((position) => (
+                    <TableRow key={position.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{position.name}</div>
+                          <div className="text-sm text-muted-foreground">{position.description}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">#{position.rank}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{position.points} pts</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={position.isActive ? "default" : "secondary"}>
+                          {position.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(position.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditPositionDialog(position)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeletePosition(position.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPositions.map((position) => (
-                      <TableRow key={position.id}>
-                        <TableCell>
-                          <Badge className={getPositionBadgeColor(position.category)}>{position.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{position.isGroup ? "Group" : "Individual"}</Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{position.points}</TableCell>
-                        <TableCell>{position.usageCount}</TableCell>
-                        <TableCell>{new Date(position.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditPositionDialog(position)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Position
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDeletePosition(position.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Position
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="grades" className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search grades..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="max-w-sm"
               />
             </div>
-            <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
+            <Dialog open={isAddGradeDialogOpen} onOpenChange={setIsAddGradeDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={resetGradeForm}>
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button>
+                  <Award className="mr-2 h-4 w-4" />
                   Add Grade
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{editingGrade ? "Edit Grade" : "Add New Grade"}</DialogTitle>
-                  <DialogDescription>
-                    {editingGrade ? "Update grade details" : "Create a new grade type"}
-                  </DialogDescription>
+                  <DialogTitle>Add New Grade</DialogTitle>
+                  <DialogDescription>Create a new grading level</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleGradeSubmit}>
-                  <div className="grid gap-4 py-4">
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="gradeCategory" className="text-right">
-                        Category
-                      </Label>
-                      <Select
-                        value={gradeFormData.category}
-                        onValueChange={(value) =>
-                          setGradeFormData({ ...gradeFormData, category: value as "A" | "B" | "C" })
-                        }
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select grade category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="A">Grade A</SelectItem>
-                          <SelectItem value="B">Grade B</SelectItem>
-                          <SelectItem value="C">Grade C</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="gradePoints" className="text-right">
-                        Points
-                      </Label>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="grade-name">Grade Name</Label>
+                    <Input
+                      id="grade-name"
+                      value={gradeFormData.name}
+                      onChange={(e) => setGradeFormData({ ...gradeFormData, name: e.target.value })}
+                      placeholder="Enter grade name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="grade-description">Description</Label>
+                    <Textarea
+                      id="grade-description"
+                      value={gradeFormData.description}
+                      onChange={(e) => setGradeFormData({ ...gradeFormData, description: e.target.value })}
+                      placeholder="Enter grade description"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="grade-min">Min Score</Label>
                       <Input
-                        id="gradePoints"
+                        id="grade-min"
                         type="number"
-                        value={gradeFormData.points}
+                        value={gradeFormData.minScore}
                         onChange={(e) =>
-                          setGradeFormData({ ...gradeFormData, points: Number.parseInt(e.target.value) || 0 })
+                          setGradeFormData({ ...gradeFormData, minScore: Number.parseInt(e.target.value) || 0 })
                         }
-                        className="col-span-3"
-                        required
+                        placeholder="Minimum score"
                       />
                     </div>
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="gradeIsGroup" className="text-right">
-                        Group Grade
-                      </Label>
-                      <div className="col-span-3">
-                        <Checkbox
-                          id="gradeIsGroup"
-                          checked={gradeFormData.isGroup}
-                          onCheckedChange={(checked) => setGradeFormData({ ...gradeFormData, isGroup: !!checked })}
-                        />
-                      </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="grade-max">Max Score</Label>
+                      <Input
+                        id="grade-max"
+                        type="number"
+                        value={gradeFormData.maxScore}
+                        onChange={(e) =>
+                          setGradeFormData({ ...gradeFormData, maxScore: Number.parseInt(e.target.value) || 100 })
+                        }
+                        placeholder="Maximum score"
+                      />
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Saving..." : editingGrade ? "Update" : "Create"}
-                    </Button>
-                  </DialogFooter>
-                </form>
+                  <div className="grid gap-2">
+                    <Label htmlFor="grade-color">Color</Label>
+                    <Select
+                      value={gradeFormData.color}
+                      onValueChange={(value) => setGradeFormData({ ...gradeFormData, color: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {gradeColors.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddGradeDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddGrade}>Add Grade</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>All Grades</CardTitle>
-              <CardDescription>Manage grading system and point values</CardDescription>
+              <CardTitle>Grading System</CardTitle>
+              <CardDescription>Manage grade levels and score ranges</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead>Usage</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Grade</TableHead>
+                    <TableHead>Score Range</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredGrades.map((grade) => (
+                    <TableRow key={grade.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full ${getColorClass(grade.color)}`} />
+                          <div>
+                            <div className="font-medium">{grade.name}</div>
+                            <div className="text-sm text-muted-foreground">{grade.description}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {grade.minScore} - {grade.maxScore}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={grade.isActive ? "default" : "secondary"}>
+                          {grade.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(grade.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditGradeDialog(grade)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteGrade(grade.id)} className="text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredGrades.map((grade) => (
-                      <TableRow key={grade.id}>
-                        <TableCell>
-                          <Badge className={getGradeBadgeColor(grade.category)}>Grade {grade.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{grade.isGroup ? "Group" : "Individual"}</Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{grade.points}</TableCell>
-                        <TableCell>{grade.usageCount}</TableCell>
-                        <TableCell>{new Date(grade.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditGradeDialog(grade)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Grade
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteGrade(grade.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Grade
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Position Dialog */}
+      <Dialog open={isEditPositionDialogOpen} onOpenChange={setIsEditPositionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Position</DialogTitle>
+            <DialogDescription>Update position information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-position-name">Position Name</Label>
+              <Input
+                id="edit-position-name"
+                value={positionFormData.name}
+                onChange={(e) => setPositionFormData({ ...positionFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-position-description">Description</Label>
+              <Textarea
+                id="edit-position-description"
+                value={positionFormData.description}
+                onChange={(e) => setPositionFormData({ ...positionFormData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-position-points">Points</Label>
+                <Input
+                  id="edit-position-points"
+                  type="number"
+                  value={positionFormData.points}
+                  onChange={(e) =>
+                    setPositionFormData({ ...positionFormData, points: Number.parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-position-rank">Rank</Label>
+                <Input
+                  id="edit-position-rank"
+                  type="number"
+                  value={positionFormData.rank}
+                  onChange={(e) =>
+                    setPositionFormData({ ...positionFormData, rank: Number.parseInt(e.target.value) || 1 })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditPositionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditPosition}>Update Position</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Grade Dialog */}
+      <Dialog open={isEditGradeDialogOpen} onOpenChange={setIsEditGradeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Grade</DialogTitle>
+            <DialogDescription>Update grade information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-grade-name">Grade Name</Label>
+              <Input
+                id="edit-grade-name"
+                value={gradeFormData.name}
+                onChange={(e) => setGradeFormData({ ...gradeFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-grade-description">Description</Label>
+              <Textarea
+                id="edit-grade-description"
+                value={gradeFormData.description}
+                onChange={(e) => setGradeFormData({ ...gradeFormData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-grade-min">Min Score</Label>
+                <Input
+                  id="edit-grade-min"
+                  type="number"
+                  value={gradeFormData.minScore}
+                  onChange={(e) =>
+                    setGradeFormData({ ...gradeFormData, minScore: Number.parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-grade-max">Max Score</Label>
+                <Input
+                  id="edit-grade-max"
+                  type="number"
+                  value={gradeFormData.maxScore}
+                  onChange={(e) =>
+                    setGradeFormData({ ...gradeFormData, maxScore: Number.parseInt(e.target.value) || 100 })
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-grade-color">Color</Label>
+              <Select
+                value={gradeFormData.color}
+                onValueChange={(value) => setGradeFormData({ ...gradeFormData, color: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradeColors.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditGradeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditGrade}>Update Grade</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

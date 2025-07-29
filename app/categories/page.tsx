@@ -1,13 +1,13 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, MoreHorizontal, Edit, Trash2, Tag, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -17,39 +17,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Tag } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/axios"
 
 interface Category {
-  id: number
+  id: string
   name: string
-  description?: string
-  studentCount: number
-  programCount: number
+  description: string
+  type: "student" | "program"
+  color: string
+  usageCount: number
+  isActive: boolean
   createdAt: string
 }
 
+const categoryColors = [
+  { value: "blue", label: "Blue", class: "bg-blue-500" },
+  { value: "green", label: "Green", class: "bg-green-500" },
+  { value: "red", label: "Red", class: "bg-red-500" },
+  { value: "yellow", label: "Yellow", class: "bg-yellow-500" },
+  { value: "purple", label: "Purple", class: "bg-purple-500" },
+  { value: "pink", label: "Pink", class: "bg-pink-500" },
+  { value: "indigo", label: "Indigo", class: "bg-indigo-500" },
+  { value: "orange", label: "Orange", class: "bg-orange-500" },
+]
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterType, setFilterType] = useState<"all" | "student" | "program">("all")
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    type: "student" as "student" | "program",
+    color: "blue",
+    isActive: true,
   })
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchCategories()
@@ -57,120 +68,120 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:5001/api/categories", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCategories(data)
-      } else {
-        setError("Failed to fetch categories")
-      }
+      const response = await api.get("/categories")
+      setCategories(response.data)
     } catch (error) {
-      setError("Network error")
+      toast({
+        title: "Error",
+        description: "Failed to fetch categories",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
+  const handleAddCategory = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const url = editingCategory
-        ? `http://localhost:5001/api/categories/${editingCategory.id}`
-        : "http://localhost:5001/api/categories"
-
-      const method = editingCategory ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
+      const response = await api.post("/categories", formData)
+      setCategories([...categories, response.data])
+      setIsAddDialogOpen(false)
+      setFormData({ name: "", description: "", type: "student", color: "blue", isActive: true })
+      toast({
+        title: "Success",
+        description: "Category added successfully",
       })
-
-      if (response.ok) {
-        fetchCategories()
-        setIsDialogOpen(false)
-        resetForm()
-      } else {
-        const data = await response.json()
-        setError(data.message || "Operation failed")
-      }
     } catch (error) {
-      setError("Network error")
-    } finally {
-      setLoading(false)
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this category?")) return
+  const handleEditCategory = async () => {
+    if (!selectedCategory) return
 
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:5001/api/categories/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.put(`/categories/${selectedCategory.id}`, formData)
+      setCategories(categories.map((category) => (category.id === selectedCategory.id ? response.data : category)))
+      setIsEditDialogOpen(false)
+      setSelectedCategory(null)
+      setFormData({ name: "", description: "", type: "student", color: "blue", isActive: true })
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
       })
-
-      if (response.ok) {
-        fetchCategories()
-      } else {
-        setError("Failed to delete category")
-      }
     } catch (error) {
-      setError("Network error")
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      })
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-    })
-    setEditingCategory(null)
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      await api.delete(`/categories/${categoryId}`)
+      setCategories(categories.filter((category) => category.id !== categoryId))
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      })
+    }
   }
 
   const openEditDialog = (category: Category) => {
-    setEditingCategory(category)
+    setSelectedCategory(category)
     setFormData({
       name: category.name,
-      description: category.description || "",
+      description: category.description,
+      type: category.type,
+      color: category.color,
+      isActive: category.isActive,
     })
-    setIsDialogOpen(true)
+    setIsEditDialogOpen(true)
   }
 
-  const filteredCategories = categories.filter(
-    (category) =>
+  const filteredCategories = categories.filter((category) => {
+    const matchesSearch =
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase())),
-  )
+      category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = filterType === "all" || category.type === filterType
+    return matchesSearch && matchesType
+  })
 
-  const getCategoryBadgeColor = (name: string) => {
-    const colors = {
-      Bidaya: "bg-green-100 text-green-800",
-      Ula: "bg-blue-100 text-blue-800",
-      Thaniyya: "bg-purple-100 text-purple-800",
-      Thanawiyya: "bg-orange-100 text-orange-800",
-      Aliya: "bg-red-100 text-red-800",
-    }
-    return colors[name as keyof typeof colors] || "bg-gray-100 text-gray-800"
+  const getColorClass = (color: string) => {
+    const colorObj = categoryColors.find((c) => c.value === color)
+    return colorObj?.class || "bg-gray-500"
   }
 
-  if (loading && categories.length === 0) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+            <p className="text-muted-foreground">Manage student and program categories</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -180,191 +191,241 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground">Manage student and program categories</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button>
+              <Tag className="mr-2 h-4 w-4" />
               Add Category
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
-              <DialogDescription>
-                {editingCategory ? "Update category information" : "Create a new category for students and programs"}
-              </DialogDescription>
+              <DialogTitle>Add New Category</DialogTitle>
+              <DialogDescription>Create a new category for students or programs</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="col-span-3"
-                    placeholder="e.g., Bidaya, Ula, Thanawiyya"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label htmlFor="description" className="text-right mt-2">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="col-span-3"
-                    placeholder="Optional description for this category"
-                    rows={3}
-                  />
-                </div>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Category Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter category name"
+                />
               </div>
-              <DialogFooter>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Saving..." : editingCategory ? "Update" : "Create"}
-                </Button>
-              </DialogFooter>
-            </form>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter category description"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: "student" | "program") => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student Category</SelectItem>
+                    <SelectItem value="program">Program Category</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="color">Color</Label>
+                <Select value={formData.color} onValueChange={(value) => setFormData({ ...formData, color: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryColors.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddCategory}>Add Category</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.length}</div>
-            <p className="text-xs text-muted-foreground">Active categories</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.reduce((sum, cat) => sum + cat.studentCount, 0)}</div>
-            <p className="text-xs text-muted-foreground">Across all categories</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Programs</CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.reduce((sum, cat) => sum + cat.programCount, 0)}</div>
-            <p className="text-xs text-muted-foreground">Across all categories</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Most Popular</CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {categories.length > 0
-                ? categories.reduce((prev, current) => (prev.studentCount > current.studentCount ? prev : current)).name
-                : "N/A"}
-            </div>
-            <p className="text-xs text-muted-foreground">By student count</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>All Categories</CardTitle>
-          <CardDescription>Manage student and program categories</CardDescription>
+          <CardDescription>Manage categories for students and programs</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="max-w-sm"
               />
             </div>
+            <Select value={filterType} onValueChange={(value: "all" | "student" | "program") => setFilterType(value)}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="student">Student Categories</SelectItem>
+                <SelectItem value="program">Program Categories</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Students</TableHead>
-                  <TableHead>Programs</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCategories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full ${getColorClass(category.color)}`} />
+                      <div>
+                        <div className="font-medium">{category.name}</div>
+                        <div className="text-sm text-muted-foreground">{category.description}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={category.type === "student" ? "default" : "secondary"}>{category.type}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-1">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{category.usageCount}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={category.isActive ? "default" : "secondary"}>
+                      {category.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(category.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(category)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      <Badge className={getCategoryBadgeColor(category.name)}>{category.name}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="truncate">{category.description || "No description"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{category.studentCount}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{category.programCount}</span>
-                    </TableCell>
-                    <TableCell>{new Date(category.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => openEditDialog(category)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Category
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(category.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Category
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Update category information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Category Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-type">Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: "student" | "program") => setFormData({ ...formData, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student Category</SelectItem>
+                  <SelectItem value="program">Program Category</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-color">Color</Label>
+              <Select value={formData.color} onValueChange={(value) => setFormData({ ...formData, color: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryColors.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditCategory}>Update Category</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
