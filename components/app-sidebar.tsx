@@ -55,125 +55,125 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/admin",
+      url: "/",
       icon: Home,
       isActive: true,
     },
     {
       title: "Students",
-      url: "/admin/students",
+      url: "/students",
       icon: Users,
       items: [
         {
           title: "All Students",
-          url: "/admin/students",
+          url: "/students",
         },
         {
           title: "Add Student",
-          url: "/admin/students/add",
+          url: "/students/add",
         },
         {
           title: "Import Students",
-          url: "/admin/students/import",
+          url: "/students/import",
         },
       ],
     },
     {
       title: "Programs",
-      url: "/admin/programs",
+      url: "/programs",
       icon: Calendar,
       items: [
         {
           title: "All Programs",
-          url: "/admin/programs",
+          url: "/programs",
         },
         {
           title: "Add Program",
-          url: "/admin/programs/add",
+          url: "/programs/add",
         },
         {
           title: "Schedule",
-          url: "/admin/programs/schedule",
+          url: "/programs/schedule",
         },
         {
           title: "Results",
-          url: "/admin/programs/results",
+          url: "/programs/results",
         },
       ],
     },
     {
       title: "Teams",
-      url: "/admin/teams",
+      url: "/teams",
       icon: Shield,
       items: [
         {
           title: "All Teams",
-          url: "/admin/teams",
+          url: "/teams",
         },
         {
           title: "Add Team",
-          url: "/admin/teams/add",
+          url: "/teams/add",
         },
         {
           title: "Leaderboard",
-          url: "/admin/teams/leaderboard",
+          url: "/teams/leaderboard",
         },
       ],
     },
     {
       title: "Judges",
-      url: "/admin/judges",
+      url: "/judges",
       icon: UserCheck,
       items: [
         {
           title: "All Judges",
-          url: "/admin/judges",
+          url: "/judges",
         },
         {
           title: "Add Judge",
-          url: "/admin/judges/add",
+          url: "/judges/add",
         },
         {
           title: "Assignments",
-          url: "/admin/judges/assignments",
+          url: "/judges/assignments",
         },
       ],
     },
     {
       title: "Participation",
-      url: "/admin/participation",
+      url: "/participation",
       icon: Trophy,
       items: [
         {
           title: "All Participations",
-          url: "/admin/participation",
+          url: "/participation",
         },
         {
           title: "Register Participant",
-          url: "/admin/participation/register",
+          url: "/participation/register",
         },
         {
           title: "Attendance",
-          url: "/admin/participation/attendance",
+          url: "/participation/attendance",
         },
       ],
     },
     {
       title: "Judgment",
-      url: "/admin/judgment",
+      url: "/judgment",
       icon: Award,
       items: [
         {
           title: "All Judgments",
-          url: "/admin/judgment",
+          url: "/judgment",
         },
         {
           title: "Add Judgment",
-          url: "/admin/judgment/add",
+          url: "/judgment/add",
         },
         {
           title: "Reports",
-          url: "/admin/judgment/reports",
+          url: "/judgment/reports",
         },
       ],
     },
@@ -186,19 +186,19 @@ const data = {
       items: [
         {
           title: "Events",
-          url: "/admin/events",
+          url: "/events",
         },
         {
           title: "Gallery",
-          url: "/admin/gallery",
+          url: "/gallery",
         },
         {
           title: "News",
-          url: "/admin/news",
+          url: "/news",
         },
         {
           title: "Downloads",
-          url: "/admin/downloads",
+          url: "/downloads",
         },
       ],
     },
@@ -209,19 +209,19 @@ const data = {
       items: [
         {
           title: "Users",
-          url: "/admin/users",
+          url: "/users",
         },
         {
           title: "Roles & Permissions",
-          url: "/admin/roles",
+          url: "/roles",
         },
         {
           title: "Categories",
-          url: "/admin/categories",
+          url: "/categories",
         },
         {
           title: "Positions & Grades",
-          url: "/admin/positions-grades",
+          url: "/positions-grades",
         },
       ],
     },
