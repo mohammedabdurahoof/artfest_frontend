@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
+
+  // Ensure we're on the client side to avoid hydration issues
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,9 +40,11 @@ export default function LoginPage() {
 
       const { token, user } = response.data
 
-      // Store token and user data
-      localStorage.setItem("token", token)
-      localStorage.setItem("user", JSON.stringify(user))
+      // Store token and user data only on client side
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", token)
+        localStorage.setItem("user", JSON.stringify(user))
+      }
 
       // Redirect to dashboard
       router.push("/")
@@ -50,6 +58,25 @@ export default function LoginPage() {
   const fillDemoCredentials = () => {
     setEmail("admin@artfest.com")
     setPassword("admin123")
+  }
+
+  // Don't render until we're on the client to avoid hydration mismatch
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xl">AF</span>
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Welcome to ArtFest</CardTitle>
+            <CardDescription>Loading...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
   }
 
   return (

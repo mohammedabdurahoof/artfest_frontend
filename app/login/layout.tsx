@@ -1,5 +1,6 @@
 import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
+import "../globals.css"
 
 export default function LoginLayout({
   children,
