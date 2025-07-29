@@ -37,20 +37,20 @@ const data = {
   },
   teams: [
     {
-      name: "ArtFest 2024",
+      name: "ArtFest 2025",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },
-    {
-      name: "ArtFest 2023",
-      logo: Bot,
-      plan: "Startup",
-    },
-    {
-      name: "ArtFest Archive",
-      logo: Frame,
-      plan: "Free",
-    },
+    // {
+    //   name: "ArtFest 2023",
+    //   logo: Bot,
+    //   plan: "Startup",
+    // },
+    // {
+    //   name: "ArtFest Archive",
+    //   logo: Frame,
+    //   plan: "Free",
+    // },
   ],
   navMain: [
     {
