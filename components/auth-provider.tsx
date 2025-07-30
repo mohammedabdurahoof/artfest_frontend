@@ -1,9 +1,9 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import api from "@/lib/axios"
+import { createContext, useContext, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import axios from "@/lib/axios"
 
 interface User {
   id: string
@@ -14,94 +14,62 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  token: string | null
-  login: (username: string, password: string) => Promise<void>
+  loading: boolean
+  login: (email: string, password: string) => Promise<void>
   logout: () => void
-  isLoading: boolean
-  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const pathname = usePathname()
 
   useEffect(() => {
-    // Check for existing token on mount
-    const storedToken = localStorage.getItem("token")
-    const storedUser = localStorage.getItem("user")
-
-    if (storedToken && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        setToken(storedToken)
-        setUser(parsedUser)
-
-        // Set token as cookie for middleware
-        document.cookie = `token=${storedToken}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 days
-      } catch (error) {
-        console.error("Error parsing stored user:", error)
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-      }
-    }
-
-    setIsLoading(false)
+    checkAuth()
   }, [])
 
-  const login = async (username: string, password: string) => {
+  const checkAuth = async () => {
     try {
-      const response = await api.post("/users/login", {
-        username,
-        password,
-      })
+      const token = localStorage.getItem("token")
+      if (!token) {
+        setLoading(false)
+        return
+      }
 
-      const { token: newToken, user: newUser } = response.data
-
-      // Store in localStorage
-      localStorage.setItem("token", newToken)
-      localStorage.setItem("user", JSON.stringify(newUser))
-
-      // Set cookie for middleware
-      document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 days
-
-      setToken(newToken)
-      setUser(newUser)
-
-      // Redirect to admin or intended page
-      const redirectUrl = new URLSearchParams(window.location.search).get("redirect") || "/admin"
-      router.push(redirectUrl)
+      const response = await axios.get("/auth/me")
+      setUser(response.data.user)
     } catch (error) {
-      throw error
+      localStorage.removeItem("token")
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await axios.post("/auth/login", { email, password })
+      const { token, user: userData } = response.data
+
+      localStorage.setItem("token", token)
+      document.cookie = `token=${token}; path=/; max-age=86400; secure; samesite=strict`
+
+      setUser(userData)
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Login failed")
     }
   }
 
   const logout = () => {
     localStorage.removeItem("token")
-    localStorage.removeItem("user")
-
-    // Remove cookie
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
-
-    setToken(null)
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
     setUser(null)
     router.push("/login")
   }
 
-  const value = {
-    user,
-    token,
-    login,
-    logout,
-    isLoading,
-    isAuthenticated: !!token && !!user,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
