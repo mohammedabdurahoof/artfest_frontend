@@ -2,15 +2,13 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
-import api from "@/lib/axios"
+import { useAuth } from "@/components/auth-provider"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -18,7 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,28 +24,12 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await api.post("/users/login", {
-        username,
-        password,
-      })
-
-      const { token, user } = response.data
-
-      localStorage.setItem("token", token)
-      localStorage.setItem("user", JSON.stringify(user))
-
-      router.push("/admin")
+      await login(username, password)
     } catch (error: any) {
       setError(error.response?.data?.message || "Login failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
-  }
-
-
-  const fillDemoCredentials = () => {
-    setUsername("admin")
-    setPassword("admin123")
   }
 
   return (
