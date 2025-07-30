@@ -1,16 +1,24 @@
 "use client"
 
-import type { LucideIcon } from "lucide-react"
+import { Folder, Forward, MoreHorizontal, Trash2, type LucideIcon } from "lucide-react"
+import Link from "next/link"
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronRight } from "lucide-react"
 
 export function NavProjects({
   projects,
@@ -29,31 +37,49 @@ export function NavProjects({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Management</SidebarGroupLabel>
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
         {projects.map((item) => (
-          <Collapsible key={item.name} asChild defaultOpen={false} className="group/collapsible">
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.name}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="ml-4 space-y-1">
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuButton key={subItem.title} asChild size="sm">
-                      <a href={subItem.url}>
-                        <span>{subItem.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+          <SidebarMenuItem key={item.name}>
+            <SidebarMenuButton asChild>
+              <Link href={item.url}>
+                <item.icon />
+                <span>{item.name}</span>
+              </Link>
+            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuAction showOnHover>
+                  <MoreHorizontal />
+                  <span className="sr-only">More</span>
+                </SidebarMenuAction>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-48 rounded-lg"
+                side={isMobile ? "bottom" : "right"}
+                align={isMobile ? "end" : "start"}
+              >
+                {item.items?.map((subItem) => (
+                  <DropdownMenuItem key={subItem.title} asChild>
+                    <Link href={subItem.url}>
+                      <Folder className="text-muted-foreground" />
+                      <span>{subItem.title}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Forward className="text-muted-foreground" />
+                  <span>Share project</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Trash2 className="text-muted-foreground" />
+                  <span>Delete project</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
         ))}
       </SidebarMenu>
     </SidebarGroup>
