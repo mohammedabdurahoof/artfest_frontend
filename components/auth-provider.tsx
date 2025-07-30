@@ -8,7 +8,7 @@ import api from "@/lib/axios"
 interface User {
   id: string
   username: string
-  email?: string
+  team?: string
   role?: string
 }
 
