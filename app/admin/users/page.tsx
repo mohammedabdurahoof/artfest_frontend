@@ -154,7 +154,7 @@ export default function UsersPage() {
             <h1 className="text-3xl font-bold tracking-tight">Users</h1>
             <p className="text-muted-foreground">Manage system users and their permissions</p>
           </div>
-        </div>
+        </div>            
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-center h-32">

@@ -36,13 +36,14 @@ export default function LoginPage() {
       localStorage.setItem("token", token)
       localStorage.setItem("user", JSON.stringify(user))
 
-      router.push("/")
+      router.push("/admin")
     } catch (error: any) {
       setError(error.response?.data?.message || "Login failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
+
 
   const fillDemoCredentials = () => {
     setUsername("admin")
@@ -119,28 +120,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Demo</span>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full bg-transparent"
-            onClick={fillDemoCredentials}
-            disabled={isLoading}
-          >
-            Use Demo Credentials
-          </Button>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Demo: admin / admin123</p>
-          </div>
+          
         </CardContent>
       </Card>
     </div>

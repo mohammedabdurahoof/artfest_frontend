@@ -3,6 +3,12 @@ import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import Link from "next/link"
+
+interface BreadcrumbLinkProps extends React.ComponentPropsWithoutRef<"a"> {
+  asChild?: boolean
+  href: string
+}
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
@@ -39,23 +45,33 @@ const BreadcrumbItem = React.forwardRef<
 ))
 BreadcrumbItem.displayName = "BreadcrumbItem"
 
-const BreadcrumbLink = React.forwardRef<
-  HTMLAnchorElement,
-  React.ComponentPropsWithoutRef<"a"> & {
-    asChild?: boolean
-  }
->(({ asChild, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a"
+const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(
+  ({ asChild, className, href, ...props }, ref) => {
+    if (asChild) {
+      // Use Slot when a custom child is passed
+      return (
+        <Slot
+          ref={ref}
+          className={cn("transition-colors hover:text-foreground", className)}
+          {...props}
+        />
+      )
+    }
 
-  return (
-    <Comp
-      ref={ref}
-      className={cn("transition-colors hover:text-foreground", className)}
-      {...props}
-    />
-  )
-})
+    return (
+      <Link href={href} passHref legacyBehavior>
+        <a
+          ref={ref}
+          className={cn("transition-colors hover:text-foreground", className)}
+          {...props}
+        />
+      </Link>
+    )
+  }
+)
+
 BreadcrumbLink.displayName = "BreadcrumbLink"
+
 
 const BreadcrumbPage = React.forwardRef<
   HTMLSpanElement,
