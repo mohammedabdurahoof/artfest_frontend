@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
+import Link from "next/link"
 
 export function NavProjects({
   projects,
@@ -45,9 +46,9 @@ export function NavProjects({
                 <div className="ml-4 space-y-1">
                   {item.items?.map((subItem) => (
                     <SidebarMenuButton key={subItem.title} asChild size="sm">
-                      <a href={subItem.url}>
+                      <Link href={subItem.url}>
                         <span>{subItem.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   ))}
                 </div>
