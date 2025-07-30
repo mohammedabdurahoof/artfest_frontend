@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import Link from "next/link"
 
 interface Category {
   id: string
@@ -177,7 +178,9 @@ export default function CategoriesPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link href="/admin">Dashboard</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
