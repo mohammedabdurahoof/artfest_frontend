@@ -39,6 +39,7 @@ import {
   Users,
   Trophy,
   FileText,
+  UserPlus,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import axios from "@/lib/axios"
@@ -61,9 +62,33 @@ interface Program {
   status: "Active" | "Completed" | "Scheduled" | "Cancelled"
   resultStatus: "Published" | "Pending" | "Not Started"
   judge?: string
-  noOfCandidates: number
+  participants: string[]
   createdAt: string
   updatedAt: string
+}
+
+interface Student {
+  _id: string
+  name: string
+  chestNo: string
+  class: string
+  team: {
+    _id: string
+    name: string
+    color: string
+  }
+  category: string
+  isActive: boolean
+}
+
+interface Team {
+  _id: string
+  name: string
+  color: string
+  captain: string
+  members: number
+  totalPoints: number
+  isActive: boolean
 }
 
 const categories = ["Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya"]
@@ -71,12 +96,18 @@ const venues = ["Main Hall", "Auditorium", "Conference Room", "Outdoor Stage", "
 
 export default function ProgramsPage() {
   const [programs, setPrograms] = useState<Program[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [editingProgram, setEditingProgram] = useState<Program | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isParticipantsDialogOpen, setIsParticipantsDialogOpen] = useState(false)
   const [programToDelete, setProgramToDelete] = useState<Program | null>(null)
+  const [selectedProgramForParticipants, setSelectedProgramForParticipants] = useState<Program | null>(null)
+  const [availableStudents, setAvailableStudents] = useState<Student[]>([])
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
 
   const [programFormData, setProgramFormData] = useState({
     programCode: "",
@@ -96,6 +127,8 @@ export default function ProgramsPage() {
 
   useEffect(() => {
     fetchPrograms()
+    fetchStudents()
+    fetchTeams()
   }, [])
 
   const fetchPrograms = async () => {
@@ -112,6 +145,34 @@ export default function ProgramsPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchStudents = async () => {
+    try {
+      const response = await axios.get("/students")
+      setStudents(response.data.data || [])
+    } catch (error) {
+      console.error("Error fetching students:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch students",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get("/teams")
+      setTeams(response.data.data || [])
+    } catch (error) {
+      console.error("Error fetching teams:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch teams",
+        variant: "destructive",
+      })
     }
   }
 
@@ -139,7 +200,7 @@ export default function ProgramsPage() {
     if (!editingProgram) return
 
     try {
-      await axios.put(`/programs/${editingProgram._id}`, programFormData)
+      await axios.patch(`/programs/${editingProgram._id}`, programFormData)
       toast({
         title: "Success",
         description: "Program updated successfully",
@@ -179,6 +240,48 @@ export default function ProgramsPage() {
     }
   }
 
+  const handleManageParticipants = (program: Program) => {
+    setSelectedProgramForParticipants(program)
+    // Filter students by program category and availability
+    const filtered = students.filter((student) => student.category === program.category && student.isActive)
+    setAvailableStudents(filtered)
+    setSelectedStudents(program.participants || [])
+    setIsParticipantsDialogOpen(true)
+  }
+
+  const handleUpdateParticipants = async () => {
+    if (!selectedProgramForParticipants) return
+
+    try {
+      await axios.patch(`/programs/${selectedProgramForParticipants._id}`, {
+        participants: selectedStudents,
+      })
+      toast({
+        title: "Success",
+        description: "Participants updated successfully",
+      })
+      setIsParticipantsDialogOpen(false)
+      setSelectedProgramForParticipants(null)
+      setSelectedStudents([])
+      fetchPrograms()
+    } catch (error) {
+      console.error("Error updating participants:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update participants",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getStudentById = (studentId: string) => {
+    return students.find((s) => s._id === studentId)
+  }
+
+  const getTeamById = (teamId: string) => {
+    return teams.find((t) => t._id === teamId)
+  }
+
   const filteredPrograms = programs.filter(
     (program) =>
       program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -209,7 +312,7 @@ export default function ProgramsPage() {
   const totalPrograms = programs.length
   const activePrograms = programs.filter((p) => p.status === "Active").length
   const completedPrograms = programs.filter((p) => p.status === "Completed").length
-  const totalParticipants = programs.reduce((sum, p) => sum + p.noOfCandidates, 0)
+  const totalParticipants = programs.reduce((sum, p) => sum + (p.participants?.length || 0), 0)
 
   if (loading) {
     return (
@@ -367,7 +470,14 @@ export default function ProgramsPage() {
                       <Badge variant="outline">{program.category}</Badge>
                     </TableCell>
                     <TableCell>
-                      {program.noOfCandidates}/{program.maxParticipants}
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {program.participants?.length || 0}/{program.maxParticipants}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => handleManageParticipants(program)}>
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -406,6 +516,10 @@ export default function ProgramsPage() {
                           <DropdownMenuItem onClick={() => handleEditProgram(program)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Program
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleManageParticipants(program)}>
+                            <Users className="mr-2 h-4 w-4" />
+                            Manage Participants
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -587,6 +701,85 @@ export default function ProgramsPage() {
               Cancel
             </Button>
             <Button onClick={handleUpdateProgram}>Update Program</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Participants Dialog */}
+      <Dialog open={isParticipantsDialogOpen} onOpenChange={setIsParticipantsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Participants</DialogTitle>
+            <DialogDescription>
+              Add or remove participants for "{selectedProgramForParticipants?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Category: {selectedProgramForParticipants?.category} | Max Participants:{" "}
+              {selectedProgramForParticipants?.maxParticipants}
+            </div>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label>Available Students ({availableStudents.length})</Label>
+                <div className="max-h-60 overflow-y-auto border rounded-md p-2">
+                  {availableStudents.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No students available for this category
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {availableStudents.map((student) => (
+                        <div key={student._id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={student._id}
+                            checked={selectedStudents.includes(student._id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                if (selectedStudents.length < (selectedProgramForParticipants?.maxParticipants || 0)) {
+                                  setSelectedStudents([...selectedStudents, student._id])
+                                } else {
+                                  toast({
+                                    title: "Maximum participants reached",
+                                    description: "Cannot add more participants to this program",
+                                    variant: "destructive",
+                                  })
+                                }
+                              } else {
+                                setSelectedStudents(selectedStudents.filter((id) => id !== student._id))
+                              }
+                            }}
+                          />
+                          <Label htmlFor={student._id} className="flex-1 cursor-pointer">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium">{student.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Chest No: {student.chestNo} | Class: {student.class}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: student.team.color }} />
+                                <span className="text-sm">{student.team.name}</span>
+                              </div>
+                            </div>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Selected: {selectedStudents.length} / {selectedProgramForParticipants?.maxParticipants}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsParticipantsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateParticipants}>Update Participants</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -3,40 +3,43 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Clock, MapPin, Users, ArrowLeft, Filter } from "lucide-react"
-import Link from "next/link"
-import axios from "@/lib/axios"
 import { toast } from "@/hooks/use-toast"
+import axios from "@/lib/axios"
+import Link from "next/link"
 
 interface Program {
   _id: string
   programCode: string
   name: string
+  description: string
+  duration: number
   category: string
+  isStage: boolean
+  isGroup: boolean
+  maxParticipants: number
   venue: string
   date: string
   startingTime: string
   endingTime: string
-  duration: number
-  isStage: boolean
-  isGroup: boolean
-  maxParticipants: number
-  noOfCandidates: number
   status: "Active" | "Completed" | "Scheduled" | "Cancelled"
+  resultStatus: "Published" | "Pending" | "Not Started"
   judge?: string
+  noOfCandidates: number
 }
 
 const categories = ["All", "Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya"]
 const venues = ["All", "Main Hall", "Auditorium", "Conference Room", "Outdoor Stage", "Classroom A", "Classroom B"]
 
-export default function SchedulePage() {
+export default function ProgramSchedulePage() {
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedVenue, setSelectedVenue] = useState("All")
-  const [selectedDate, setSelectedDate] = useState("")
 
   useEffect(() => {
     fetchPrograms()
@@ -60,27 +63,27 @@ export default function SchedulePage() {
   }
 
   const filteredPrograms = programs.filter((program) => {
-    const categoryMatch = selectedCategory === "All" || program.category === selectedCategory
-    const venueMatch = selectedVenue === "All" || program.venue === selectedVenue
-    const dateMatch = !selectedDate || program.date === selectedDate
-    return categoryMatch && venueMatch && dateMatch
+    const matchesDate = !selectedDate || program.date === selectedDate
+    const matchesCategory = selectedCategory === "All" || program.category === selectedCategory
+    const matchesVenue = selectedVenue === "All" || program.venue === selectedVenue
+    return matchesDate && matchesCategory && matchesVenue
   })
 
-  const groupedByDate = filteredPrograms.reduce(
-    (acc, program) => {
+  const groupedPrograms = filteredPrograms.reduce(
+    (groups, program) => {
       const date = program.date
-      if (!acc[date]) {
-        acc[date] = []
+      if (!groups[date]) {
+        groups[date] = []
       }
-      acc[date].push(program)
-      return acc
+      groups[date].push(program)
+      return groups
     },
     {} as Record<string, Program[]>,
   )
 
   // Sort programs within each date by start time
-  Object.keys(groupedByDate).forEach((date) => {
-    groupedByDate[date].sort((a, b) => a.startingTime.localeCompare(b.startingTime))
+  Object.keys(groupedPrograms).forEach((date) => {
+    groupedPrograms[date].sort((a, b) => a.startingTime.localeCompare(b.startingTime))
   })
 
   const getStatusColor = (status: string) => {
@@ -113,8 +116,7 @@ export default function SchedulePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="h-9 w-32 bg-gray-200 rounded animate-pulse" />
+        <div className="flex items-center justify-between">
           <div>
             <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
             <div className="h-4 w-64 bg-gray-200 rounded animate-pulse mt-2" />
@@ -122,7 +124,7 @@ export default function SchedulePage() {
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 bg-gray-200 rounded animate-pulse" />
+            <div key={i} className="h-20 bg-gray-200 rounded animate-pulse" />
           ))}
         </div>
         <div className="space-y-4">
@@ -145,7 +147,7 @@ export default function SchedulePage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Program Schedule</h1>
-          <p className="text-muted-foreground">View and manage program schedules</p>
+          <p className="text-muted-foreground">View and manage program schedules by date and time</p>
         </div>
       </div>
 
@@ -159,6 +161,15 @@ export default function SchedulePage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                placeholder="Select date"
+              />
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -190,22 +201,15 @@ export default function SchedulePage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-            <div className="flex items-end">
+              <label className="text-sm font-medium">Actions</label>
               <Button
                 variant="outline"
                 onClick={() => {
+                  setSelectedDate("")
                   setSelectedCategory("All")
                   setSelectedVenue("All")
-                  setSelectedDate("")
                 }}
+                className="w-full"
               >
                 Clear Filters
               </Button>
@@ -214,51 +218,54 @@ export default function SchedulePage() {
         </CardContent>
       </Card>
 
-      {/* Schedule */}
-      <div className="space-y-6">
-        {Object.keys(groupedByDate).length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No programs scheduled</h3>
-                <p className="text-muted-foreground">
-                  {selectedCategory !== "All" || selectedVenue !== "All" || selectedDate
-                    ? "No programs match your current filters."
-                    : "There are no programs scheduled yet."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          Object.keys(groupedByDate)
-            .sort()
-            .map((date) => (
+      {/* Schedule Display */}
+      {Object.keys(groupedPrograms).length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Programs Found</h3>
+              <p className="text-muted-foreground">No programs match your current filters.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(groupedPrograms)
+            .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+            .map(([date, datePrograms]) => (
               <Card key={date}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     {formatDate(date)}
                   </CardTitle>
-                  <CardDescription>
-                    {groupedByDate[date].length} program{groupedByDate[date].length !== 1 ? "s" : ""} scheduled
-                  </CardDescription>
+                  <CardDescription>{datePrograms.length} programs scheduled</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {groupedByDate[date].map((program) => (
+                    {datePrograms.map((program) => (
                       <div
                         key={program._id}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold">{program.name}</h3>
+                            <h4 className="font-semibold">{program.name}</h4>
                             <Badge variant="outline">{program.programCode}</Badge>
-                            <Badge variant="outline">{program.category}</Badge>
                             <Badge className={getStatusColor(program.status)}>{program.status}</Badge>
+                            {program.isGroup && (
+                              <Badge variant="secondary" className="text-xs">
+                                Group
+                              </Badge>
+                            )}
+                            {program.isStage && (
+                              <Badge variant="secondary" className="text-xs">
+                                Stage
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
                               {formatTime(program.startingTime)} - {formatTime(program.endingTime)}
@@ -270,30 +277,67 @@ export default function SchedulePage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <Users className="h-4 w-4" />
-                              {program.noOfCandidates}/{program.maxParticipants}
+                              {program.noOfCandidates}/{program.maxParticipants} participants
                             </div>
-                            {program.judge && <div className="text-sm">Judge: {program.judge}</div>}
+                            <Badge variant="outline">{program.category}</Badge>
                           </div>
-                          <div className="flex gap-2 mt-2">
-                            {program.isStage && (
-                              <Badge variant="outline" className="text-xs">
-                                Stage
-                              </Badge>
-                            )}
-                            {program.isGroup && (
-                              <Badge variant="outline" className="text-xs">
-                                Group
-                              </Badge>
-                            )}
-                          </div>
+                          {program.description && (
+                            <p className="text-sm text-muted-foreground mt-2">{program.description}</p>
+                          )}
+                          {program.judge && (
+                            <p className="text-sm text-muted-foreground mt-1">Judge: {program.judge}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/programs/${program._id}`}>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
-            ))
-        )}
+            ))}
+        </div>
+      )}
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Programs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredPrograms.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Programs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredPrograms.filter((p) => p.status === "Active").length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Scheduled Programs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredPrograms.filter((p) => p.status === "Scheduled").length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredPrograms.reduce((sum, p) => sum + p.noOfCandidates, 0)}</div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
