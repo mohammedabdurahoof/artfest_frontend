@@ -23,36 +23,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
+import { Permission, Role } from "@/types"
 
-interface Role {
-  id: string
-  name: string
-  description: string
-  permissions: string[]
-  userCount: number
-  createdAt: string
-}
 
-interface Permission {
-  id: string
-  name: string
-  description: string
-  category: string
-  createdAt: string
-}
 
-const availablePermissions = [
-  { id: "users.read", name: "View Users", category: "Users" },
-  { id: "users.write", name: "Manage Users", category: "Users" },
-  { id: "students.read", name: "View Students", category: "Students" },
-  { id: "students.write", name: "Manage Students", category: "Students" },
-  { id: "programs.read", name: "View Programs", category: "Programs" },
-  { id: "programs.write", name: "Manage Programs", category: "Programs" },
-  { id: "judges.read", name: "View Judges", category: "Judges" },
-  { id: "judges.write", name: "Manage Judges", category: "Judges" },
-  { id: "results.read", name: "View Results", category: "Results" },
-  { id: "results.write", name: "Manage Results", category: "Results" },
-]
+
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([])
@@ -62,15 +37,15 @@ export default function RolesPage() {
   const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false)
   const [isEditRoleDialogOpen, setIsEditRoleDialogOpen] = useState(false)
   const [isAddPermissionDialogOpen, setIsAddPermissionDialogOpen] = useState(false)
+  const [isEditPermissionDialogOpen, setIsEditPermissionDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+  const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null)
   const [roleFormData, setRoleFormData] = useState({
     name: "",
-    description: "",
     permissions: [] as string[],
   })
   const [permissionFormData, setPermissionFormData] = useState({
     name: "",
-    description: "",
     category: "",
   })
   const { toast } = useToast()
@@ -83,7 +58,7 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     try {
       const response = await api.get("/roles")
-      setRoles(response.data)
+      setRoles(response.data.data)
     } catch (error) {
       toast({
         title: "Error",
@@ -98,7 +73,7 @@ export default function RolesPage() {
   const fetchPermissions = async () => {
     try {
       const response = await api.get("/permissions")
-      setPermissions(response.data)
+      setPermissions(response.data.data)
     } catch (error) {
       toast({
         title: "Error",
@@ -111,9 +86,9 @@ export default function RolesPage() {
   const handleAddRole = async () => {
     try {
       const response = await api.post("/roles", roleFormData)
-      setRoles([...roles, response.data])
+      setRoles([...roles, response.data.data])
       setIsAddRoleDialogOpen(false)
-      setRoleFormData({ name: "", description: "", permissions: [] })
+      setRoleFormData({ name: "", permissions: [] })
       toast({
         title: "Success",
         description: "Role added successfully",
@@ -131,11 +106,11 @@ export default function RolesPage() {
     if (!selectedRole) return
 
     try {
-      const response = await api.put(`/roles/${selectedRole.id}`, roleFormData)
-      setRoles(roles.map((role) => (role.id === selectedRole.id ? response.data : role)))
+      const response = await api.patch(`/roles/${selectedRole._id}`, roleFormData)
+      setRoles(roles.map((role) => (role._id === selectedRole._id ? response.data.data : role)))
       setIsEditRoleDialogOpen(false)
       setSelectedRole(null)
-      setRoleFormData({ name: "", description: "", permissions: [] })
+      setRoleFormData({ name: "", permissions: [] })
       toast({
         title: "Success",
         description: "Role updated successfully",
@@ -149,10 +124,48 @@ export default function RolesPage() {
     }
   }
 
+  // Group permissions by category
+  const groupedPermissions = permissions.reduce(
+    (acc, permission) => {
+      if (!acc[permission.category]) {
+        acc[permission.category] = []
+      }
+      acc[permission.category].push(permission)
+      return acc
+    },
+    {} as Record<string, Permission[]>,
+  )
+
+
+  const handleEditPermission = async () => {
+    if (!selectedPermission) return
+
+    try {
+      const response = await api.patch(`/permissions/${selectedPermission._id}`, permissionFormData)
+      setPermissions(permissions.map((permission) =>
+        permission._id === selectedPermission._id ? response.data.data : permission
+      ))
+      setIsEditPermissionDialogOpen(false)
+      setSelectedPermission(null)
+      setPermissionFormData({ name: "", category: "" })
+      toast({
+        title: "Success",
+        description: "Permission updated successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update permission",
+        variant: "destructive",
+      })
+    }
+  }
+
+
   const handleDeleteRole = async (roleId: string) => {
     try {
       await api.delete(`/roles/${roleId}`)
-      setRoles(roles.filter((role) => role.id !== roleId))
+      setRoles(roles.filter((role) => role._id !== roleId))
       toast({
         title: "Success",
         description: "Role deleted successfully",
@@ -169,9 +182,9 @@ export default function RolesPage() {
   const handleAddPermission = async () => {
     try {
       const response = await api.post("/permissions", permissionFormData)
-      setPermissions([...permissions, response.data])
+      setPermissions([...permissions, response.data.data])
       setIsAddPermissionDialogOpen(false)
-      setPermissionFormData({ name: "", description: "", category: "" })
+      setPermissionFormData({ name: "", category: "" })
       toast({
         title: "Success",
         description: "Permission added successfully",
@@ -185,14 +198,41 @@ export default function RolesPage() {
     }
   }
 
+  const handleDeletePermission = async (permissionId: string) => {
+    try {
+      await api.delete(`/permissions/${permissionId}`)
+      setPermissions(permissions.filter((permission) => permission._id !== permissionId))
+      toast({
+        title: "Success",
+        description: "Permission deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete permission",
+        variant: "destructive",
+      })
+    }
+  }
+
   const openEditRoleDialog = (role: Role) => {
     setSelectedRole(role)
     setRoleFormData({
       name: role.name,
-      description: role.description,
-      permissions: role.permissions,
+      permissions: role.permissions.map(permission => permission._id), // or permission.name
     })
     setIsEditRoleDialogOpen(true)
+  }
+
+  const openEditPermissionDialog = (permission: Permission) => {
+    console.log("Opening edit permission dialog for:", permission);
+
+    setSelectedPermission(permission)
+    setPermissionFormData({
+      name: permission.name,
+      category: permission.category,
+    })
+    setIsEditPermissionDialogOpen(true)
   }
 
   const handlePermissionToggle = (permissionId: string, checked: boolean) => {
@@ -209,17 +249,16 @@ export default function RolesPage() {
     }
   }
 
-  const filteredRoles = roles.filter(
+  const filteredRoles = roles?.filter?.(
     (role) =>
-      role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      role.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
 
-  const filteredPermissions = permissions.filter(
+  const filteredPermissions = permissions?.filter?.(
     (permission) =>
-      permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      permission.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      permission.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
+
 
   if (loading) {
     return (
@@ -289,7 +328,7 @@ export default function RolesPage() {
                       placeholder="Enter role name"
                     />
                   </div>
-                  <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label htmlFor="role-description">Description</Label>
                     <Textarea
                       id="role-description"
@@ -297,20 +336,48 @@ export default function RolesPage() {
                       onChange={(e) => setRoleFormData({ ...roleFormData, description: e.target.value })}
                       placeholder="Enter role description"
                     />
-                  </div>
-                  <div className="grid gap-2">
+                  </div> */}
+                  {/* <div className="grid gap-2">
                     <Label>Permissions</Label>
                     <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto">
-                      {availablePermissions.map((permission) => (
-                        <div key={permission.id} className="flex items-center space-x-2">
+                      {permissions.map((permission) => (
+                        <div key={permission._id} className="flex items-center space-x-2">
                           <Checkbox
-                            id={permission.id}
-                            checked={roleFormData.permissions.includes(permission.id)}
-                            onCheckedChange={(checked) => handlePermissionToggle(permission.id, checked as boolean)}
+                            id={permission._id}
+                            checked={roleFormData.permissions.includes(permission._id)}
+                            onCheckedChange={(checked) => handlePermissionToggle(permission._id, checked as boolean)}
                           />
-                          <Label htmlFor={permission.id} className="text-sm">
+                          <Label htmlFor={permission._id} className="text-sm">
                             {permission.name}
                           </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div> */}
+                  <div className="grid gap-2">
+                    <Label>Permissions</Label>
+                    <div className="space-y-4 max-h-60 overflow-y-auto">
+                      {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
+                        <div key={category} className="space-y-2">
+                          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                            {category}
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2 pl-4">
+                            {categoryPermissions.map((permission) => (
+                              <div key={permission._id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={permission._id}
+                                  checked={roleFormData.permissions.includes(permission._id)}
+                                  onCheckedChange={(checked) =>
+                                    handlePermissionToggle(permission._id, checked as boolean)
+                                  }
+                                />
+                                <Label htmlFor={permission._id} className="text-sm">
+                                  {permission.name}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -344,18 +411,18 @@ export default function RolesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredRoles.map((role) => (
-                    <TableRow key={role.id}>
+                    <TableRow key={role._id}>
                       <TableCell>
                         <div>
                           <div className="font-medium">{role.name}</div>
-                          <div className="text-sm text-muted-foreground">{role.description}</div>
+                          {/* <div className="text-sm text-muted-foreground">{role.description}</div> */}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {role.permissions.slice(0, 3).map((permission) => (
-                            <Badge key={permission} variant="outline" className="text-xs">
-                              {permission}
+                            <Badge key={permission._id} variant="outline" className="text-xs">
+                              {permission.name}
                             </Badge>
                           ))}
                           {role.permissions.length > 3 && (
@@ -368,7 +435,7 @@ export default function RolesPage() {
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>{role.userCount}</span>
+                          {/* <span>{role.userCount}</span> */}
                         </div>
                       </TableCell>
                       <TableCell>{new Date(role.createdAt).toLocaleDateString()}</TableCell>
@@ -384,7 +451,7 @@ export default function RolesPage() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteRole(role.id)} className="text-destructive">
+                            <DropdownMenuItem onClick={() => handleDeleteRole(role._id)} className="text-destructive">
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
@@ -432,7 +499,7 @@ export default function RolesPage() {
                       placeholder="Enter permission name"
                     />
                   </div>
-                  <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label htmlFor="permission-description">Description</Label>
                     <Textarea
                       id="permission-description"
@@ -440,7 +507,7 @@ export default function RolesPage() {
                       onChange={(e) => setPermissionFormData({ ...permissionFormData, description: e.target.value })}
                       placeholder="Enter permission description"
                     />
-                  </div>
+                  </div> */}
                   <div className="grid gap-2">
                     <Label htmlFor="permission-category">Category</Label>
                     <Input
@@ -478,11 +545,11 @@ export default function RolesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredPermissions.map((permission) => (
-                    <TableRow key={permission.id}>
+                    <TableRow key={permission._id}>
                       <TableCell>
                         <div>
                           <div className="font-medium">{permission.name}</div>
-                          <div className="text-sm text-muted-foreground">{permission.description}</div>
+                          {/* <div className="text-sm text-muted-foreground">{permission.description}</div> */}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -497,11 +564,11 @@ export default function RolesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditPermissionDialog(permission)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeletePermission(permission._id)}>
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
@@ -533,25 +600,25 @@ export default function RolesPage() {
                 onChange={(e) => setRoleFormData({ ...roleFormData, name: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="edit-role-description">Description</Label>
               <Textarea
                 id="edit-role-description"
                 value={roleFormData.description}
                 onChange={(e) => setRoleFormData({ ...roleFormData, description: e.target.value })}
               />
-            </div>
+            </div> */}
             <div className="grid gap-2">
               <Label>Permissions</Label>
               <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto">
-                {availablePermissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center space-x-2">
+                {permissions.map((permission) => (
+                  <div key={permission._id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`edit-${permission.id}`}
-                      checked={roleFormData.permissions.includes(permission.id)}
-                      onCheckedChange={(checked) => handlePermissionToggle(permission.id, checked as boolean)}
+                      id={`edit-${permission._id}`}
+                      checked={roleFormData.permissions.includes(permission._id)}
+                      onCheckedChange={(checked) => handlePermissionToggle(permission._id, checked as boolean)}
                     />
-                    <Label htmlFor={`edit-${permission.id}`} className="text-sm">
+                    <Label htmlFor={`edit-${permission._id}`} className="text-sm">
                       {permission.name}
                     </Label>
                   </div>
@@ -564,6 +631,42 @@ export default function RolesPage() {
               Cancel
             </Button>
             <Button onClick={handleEditRole}>Update Role</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permission Dialog */}
+      <Dialog open={isEditPermissionDialogOpen} onOpenChange={setIsEditPermissionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Permission</DialogTitle>
+            <DialogDescription>Update permission information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-permission-name">Permission Name</Label>
+              <Input
+                id="edit-permission-name"
+                value={permissionFormData.name}
+                onChange={(e) => setPermissionFormData({ ...permissionFormData, name: e.target.value })}
+                placeholder="Enter permission name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-permission-category">Category</Label>
+              <Input
+                id="edit-permission-category"
+                value={permissionFormData.category}
+                onChange={(e) => setPermissionFormData({ ...permissionFormData, category: e.target.value })}
+                placeholder="Enter category"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditPermissionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditPermission}>Update Permission</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

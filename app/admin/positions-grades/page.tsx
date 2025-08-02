@@ -23,27 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
+import { Grade, Position } from "@/types"
 
-interface Position {
-  id: string
-  name: string
-  description: string
-  points: number
-  rank: number
-  isActive: boolean
-  createdAt: string
-}
-
-interface Grade {
-  id: string
-  name: string
-  description: string
-  minScore: number
-  maxScore: number
-  color: string
-  isActive: boolean
-  createdAt: string
-}
 
 const gradeColors = [
   { value: "green", label: "Green", class: "bg-green-500" },
@@ -66,17 +47,16 @@ export default function PositionsGradesPage() {
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
   const [positionFormData, setPositionFormData] = useState({
-    name: "",
-    description: "",
+    isGroup: false,
+    category: "First",
     points: 0,
     rank: 1,
     isActive: true,
   })
   const [gradeFormData, setGradeFormData] = useState({
-    name: "",
-    description: "",
-    minScore: 0,
-    maxScore: 100,
+    isStarred: false,
+    category: "A",
+    points: 0,
     color: "green",
     isActive: true,
   })
@@ -90,7 +70,7 @@ export default function PositionsGradesPage() {
   const fetchPositions = async () => {
     try {
       const response = await api.get("/positions")
-      setPositions(response.data)
+      setPositions(response.data.data)
     } catch (error) {
       toast({
         title: "Error",
@@ -105,7 +85,7 @@ export default function PositionsGradesPage() {
   const fetchGrades = async () => {
     try {
       const response = await api.get("/grades")
-      setGrades(response.data)
+      setGrades(response.data.data)
     } catch (error) {
       toast({
         title: "Error",
@@ -118,17 +98,18 @@ export default function PositionsGradesPage() {
   const handleAddPosition = async () => {
     try {
       const response = await api.post("/positions", positionFormData)
-      setPositions([...positions, response.data])
+      setPositions([...positions, response.data.data])
       setIsAddPositionDialogOpen(false)
-      setPositionFormData({ name: "", description: "", points: 0, rank: 1, isActive: true })
+      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true })
       toast({
         title: "Success",
         description: "Position added successfully",
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error adding position:", error.response?.data.message || error)
       toast({
         title: "Error",
-        description: "Failed to add position",
+        description: error.response?.data.message || "Failed to add position",
         variant: "destructive",
       })
     }
@@ -138,11 +119,11 @@ export default function PositionsGradesPage() {
     if (!selectedPosition) return
 
     try {
-      const response = await api.put(`/positions/${selectedPosition.id}`, positionFormData)
-      setPositions(positions.map((position) => (position.id === selectedPosition.id ? response.data : position)))
+      const response = await api.patch(`/positions/${selectedPosition._id}`, positionFormData)
+      setPositions(positions.map((position) => (position._id === selectedPosition._id ? response.data.data : position)))
       setIsEditPositionDialogOpen(false)
       setSelectedPosition(null)
-      setPositionFormData({ name: "", description: "", points: 0, rank: 1, isActive: true })
+      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true })
       toast({
         title: "Success",
         description: "Position updated successfully",
@@ -159,15 +140,15 @@ export default function PositionsGradesPage() {
   const handleDeletePosition = async (positionId: string) => {
     try {
       await api.delete(`/positions/${positionId}`)
-      setPositions(positions.filter((position) => position.id !== positionId))
+      setPositions(positions.filter((position) => position._id !== positionId))
       toast({
         title: "Success",
         description: "Position deleted successfully",
       })
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete position",
+        description: error.message || "Failed to delete position",
         variant: "destructive",
       })
     }
@@ -176,17 +157,18 @@ export default function PositionsGradesPage() {
   const handleAddGrade = async () => {
     try {
       const response = await api.post("/grades", gradeFormData)
-      setGrades([...grades, response.data])
+      setGrades([...grades, response.data.data])
       setIsAddGradeDialogOpen(false)
-      setGradeFormData({ name: "", description: "", minScore: 0, maxScore: 100, color: "green", isActive: true })
+      setGradeFormData({ isStarred: false, category: "A", points: 0, color: "green", isActive: true })
       toast({
         title: "Success",
         description: "Grade added successfully",
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error adding grade:", error.response?.data.message || error)
       toast({
         title: "Error",
-        description: "Failed to add grade",
+        description: error.response?.data.message || "Failed to add grade",
         variant: "destructive",
       })
     }
@@ -196,11 +178,11 @@ export default function PositionsGradesPage() {
     if (!selectedGrade) return
 
     try {
-      const response = await api.put(`/grades/${selectedGrade.id}`, gradeFormData)
-      setGrades(grades.map((grade) => (grade.id === selectedGrade.id ? response.data : grade)))
+      const response = await api.patch(`/grades/${selectedGrade._id}`, gradeFormData)
+      setGrades(grades.map((grade) => (grade._id === selectedGrade._id ? response.data.data : grade)))
       setIsEditGradeDialogOpen(false)
       setSelectedGrade(null)
-      setGradeFormData({ name: "", description: "", minScore: 0, maxScore: 100, color: "green", isActive: true })
+      setGradeFormData({ isStarred: false, category: "A", points: 0, color: "green", isActive: true })
       toast({
         title: "Success",
         description: "Grade updated successfully",
@@ -217,7 +199,7 @@ export default function PositionsGradesPage() {
   const handleDeleteGrade = async (gradeId: string) => {
     try {
       await api.delete(`/grades/${gradeId}`)
-      setGrades(grades.filter((grade) => grade.id !== gradeId))
+      setGrades(grades.filter((grade) => grade._id !== gradeId))
       toast({
         title: "Success",
         description: "Grade deleted successfully",
@@ -234,8 +216,8 @@ export default function PositionsGradesPage() {
   const openEditPositionDialog = (position: Position) => {
     setSelectedPosition(position)
     setPositionFormData({
-      name: position.name,
-      description: position.description,
+      isGroup: position.isGroup,
+      category: position.category,
       points: position.points,
       rank: position.rank,
       isActive: position.isActive,
@@ -246,10 +228,9 @@ export default function PositionsGradesPage() {
   const openEditGradeDialog = (grade: Grade) => {
     setSelectedGrade(grade)
     setGradeFormData({
-      name: grade.name,
-      description: grade.description,
-      minScore: grade.minScore,
-      maxScore: grade.maxScore,
+      isStarred: grade.isStarred,
+      category: grade.category,
+      points: grade.points,
       color: grade.color,
       isActive: grade.isActive,
     })
@@ -258,14 +239,14 @@ export default function PositionsGradesPage() {
 
   const filteredPositions = positions.filter(
     (position) =>
-      position.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      position.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      position.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      position.points.toString().includes(searchTerm.toLowerCase()),
   )
 
   const filteredGrades = grades.filter(
     (grade) =>
-      grade.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      grade.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      grade.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.points.toString().includes(searchTerm.toLowerCase()),
   )
 
   const getColorClass = (color: string) => {
@@ -333,22 +314,20 @@ export default function PositionsGradesPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="position-name">Position Name</Label>
-                    <Input
-                      id="position-name"
-                      value={positionFormData.name}
-                      onChange={(e) => setPositionFormData({ ...positionFormData, name: e.target.value })}
-                      placeholder="Enter position name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="position-description">Description</Label>
-                    <Textarea
-                      id="position-description"
-                      value={positionFormData.description}
-                      onChange={(e) => setPositionFormData({ ...positionFormData, description: e.target.value })}
-                      placeholder="Enter position description"
-                    />
+                    <Label htmlFor="position-category">Position Category</Label>
+                    <Select
+                      value={positionFormData.category}
+                      onValueChange={(value) => setPositionFormData({ ...positionFormData, category: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="First">First</SelectItem>
+                        <SelectItem value="Second">Second</SelectItem>
+                        <SelectItem value="Third">Third</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -365,15 +344,55 @@ export default function PositionsGradesPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="position-rank">Rank</Label>
-                      <Input
-                        id="position-rank"
-                        type="number"
-                        value={positionFormData.rank}
-                        onChange={(e) =>
-                          setPositionFormData({ ...positionFormData, rank: Number.parseInt(e.target.value) || 1 })
+                      <Select
+                        value={positionFormData.rank.toString()}
+                        onValueChange={(value) =>
+                          setPositionFormData({ ...positionFormData, rank: Number.parseInt(value) })
                         }
-                        placeholder="Position rank"
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="position-isgroup">Is Group</Label>
+                      <Select
+                        value={positionFormData.isGroup ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setPositionFormData({ ...positionFormData, isGroup: value === "true" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Group</SelectItem>
+                          <SelectItem value="false">Individual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="position-isactive">Is Active</Label>
+                      <Select
+                        value={positionFormData.isActive ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setPositionFormData({ ...positionFormData, isActive: value === "true" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Active</SelectItem>
+                          <SelectItem value="false">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -406,11 +425,11 @@ export default function PositionsGradesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredPositions.map((position) => (
-                    <TableRow key={position.id}>
+                    <TableRow key={position._id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{position.name}</div>
-                          <div className="text-sm text-muted-foreground">{position.description}</div>
+                          <div className="font-medium">{position.category}</div>
+                          <div className="text-sm text-muted-foreground">{position.isGroup ? "Group" : "Individual"}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -438,7 +457,7 @@ export default function PositionsGradesPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDeletePosition(position.id)}
+                              onClick={() => handleDeletePosition(position._id)}
                               className="text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -480,69 +499,93 @@ export default function PositionsGradesPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="grade-name">Grade Name</Label>
-                    <Input
-                      id="grade-name"
-                      value={gradeFormData.name}
-                      onChange={(e) => setGradeFormData({ ...gradeFormData, name: e.target.value })}
-                      placeholder="Enter grade name"
-                    />
+                    <Label htmlFor="grade-category">Grade Category</Label>
+                    <Select
+                      value={gradeFormData.category}
+                      onValueChange={(value) => setGradeFormData({ ...gradeFormData, category: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select grade category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">A</SelectItem>
+                        <SelectItem value="B">B</SelectItem>
+                        <SelectItem value="C">C</SelectItem>
+                      </SelectContent>
+                    </Select>
+
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="grade-description">Description</Label>
-                    <Textarea
-                      id="grade-description"
-                      value={gradeFormData.description}
-                      onChange={(e) => setGradeFormData({ ...gradeFormData, description: e.target.value })}
-                      placeholder="Enter grade description"
-                    />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="points"> Points</Label>
+                      <Input
+                        id="points"
+                        type="number"
+                        value={gradeFormData.points}
+                        onChange={(e) =>
+                          setGradeFormData({ ...gradeFormData, points: Number.parseInt(e.target.value) || 0 })
+                        }
+                        placeholder="Enter points"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="is-starred">Is Starred</Label>
+                      <Select
+                        value={gradeFormData.isStarred ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setGradeFormData({ ...gradeFormData, isStarred: value === "true" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="grade-min">Min Score</Label>
-                      <Input
-                        id="grade-min"
-                        type="number"
-                        value={gradeFormData.minScore}
-                        onChange={(e) =>
-                          setGradeFormData({ ...gradeFormData, minScore: Number.parseInt(e.target.value) || 0 })
-                        }
-                        placeholder="Minimum score"
-                      />
+                      <Label htmlFor="grade-color">Color</Label>
+                      <Select
+                        value={gradeFormData.color}
+                        onValueChange={(value) => setGradeFormData({ ...gradeFormData, color: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {gradeColors.map((color) => (
+                            <SelectItem key={color.value} value={color.value}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                                {color.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="grade-max">Max Score</Label>
-                      <Input
-                        id="grade-max"
-                        type="number"
-                        value={gradeFormData.maxScore}
-                        onChange={(e) =>
-                          setGradeFormData({ ...gradeFormData, maxScore: Number.parseInt(e.target.value) || 100 })
+                      <Label htmlFor="is-active">Is Active</Label>
+                      <Select
+                        value={gradeFormData.isActive ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setGradeFormData({ ...gradeFormData, isActive: value === "true" })
                         }
-                        placeholder="Maximum score"
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="grade-color">Color</Label>
-                    <Select
-                      value={gradeFormData.color}
-                      onValueChange={(value) => setGradeFormData({ ...gradeFormData, color: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select color" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gradeColors.map((color) => (
-                          <SelectItem key={color.value} value={color.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-4 h-4 rounded-full ${color.class}`} />
-                              {color.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
                 <DialogFooter>
@@ -573,19 +616,19 @@ export default function PositionsGradesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredGrades.map((grade) => (
-                    <TableRow key={grade.id}>
+                    <TableRow key={grade._id}>
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <div className={`w-4 h-4 rounded-full ${getColorClass(grade.color)}`} />
                           <div>
-                            <div className="font-medium">{grade.name}</div>
-                            <div className="text-sm text-muted-foreground">{grade.description}</div>
+                            <div className="font-medium">{grade.category}</div>
+                            <div className="text-sm text-muted-foreground">{grade.isStarred ? "Starred" : "Not Starred"}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {grade.minScore} - {grade.maxScore}
+                          {grade.points}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -606,7 +649,7 @@ export default function PositionsGradesPage() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteGrade(grade.id)} className="text-destructive">
+                            <DropdownMenuItem onClick={() => handleDeleteGrade(grade._id)} className="text-destructive">
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
@@ -631,43 +674,85 @@ export default function PositionsGradesPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-position-name">Position Name</Label>
-              <Input
-                id="edit-position-name"
-                value={positionFormData.name}
-                onChange={(e) => setPositionFormData({ ...positionFormData, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-position-description">Description</Label>
-              <Textarea
-                id="edit-position-description"
-                value={positionFormData.description}
-                onChange={(e) => setPositionFormData({ ...positionFormData, description: e.target.value })}
-              />
+              <Label htmlFor="position-category">Position Category</Label>
+              <Select
+                value={positionFormData.category}
+                onValueChange={(value) => setPositionFormData({ ...positionFormData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="First">First</SelectItem>
+                  <SelectItem value="Second">Second</SelectItem>
+                  <SelectItem value="Third">Third</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-position-points">Points</Label>
+                <Label htmlFor="position-points">Points</Label>
                 <Input
-                  id="edit-position-points"
+                  id="position-points"
                   type="number"
                   value={positionFormData.points}
                   onChange={(e) =>
                     setPositionFormData({ ...positionFormData, points: Number.parseInt(e.target.value) || 0 })
                   }
+                  placeholder="Points awarded"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-position-rank">Rank</Label>
-                <Input
-                  id="edit-position-rank"
-                  type="number"
-                  value={positionFormData.rank}
-                  onChange={(e) =>
-                    setPositionFormData({ ...positionFormData, rank: Number.parseInt(e.target.value) || 1 })
+                <Label htmlFor="position-rank">Rank</Label>
+                <Select
+                  value={positionFormData.rank.toString()}
+                  onValueChange={(value) =>
+                    setPositionFormData({ ...positionFormData, rank: Number.parseInt(value) })
                   }
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rank" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="position-isgroup">Is Group</Label>
+                <Select
+                  value={positionFormData.isGroup ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setPositionFormData({ ...positionFormData, isGroup: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Group</SelectItem>
+                    <SelectItem value="false">Individual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="position-isactive">Is Active</Label>
+                <Select
+                  value={positionFormData.isActive ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setPositionFormData({ ...positionFormData, isActive: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -687,7 +772,99 @@ export default function PositionsGradesPage() {
             <DialogTitle>Edit Grade</DialogTitle>
             <DialogDescription>Update grade information</DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="grade-category">Grade Category</Label>
+              <Select
+                value={gradeFormData.category}
+                onValueChange={(value) => setGradeFormData({ ...gradeFormData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select grade category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A">A</SelectItem>
+                  <SelectItem value="B">B</SelectItem>
+                  <SelectItem value="C">C</SelectItem>
+                </SelectContent>
+              </Select>
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="points"> Points</Label>
+                <Input
+                  id="points"
+                  type="number"
+                  value={gradeFormData.points}
+                  onChange={(e) =>
+                    setGradeFormData({ ...gradeFormData, points: Number.parseInt(e.target.value) || 0 })
+                  }
+                  placeholder="Enter points"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="is-starred">Is Starred</Label>
+                <Select
+                  value={gradeFormData.isStarred ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setGradeFormData({ ...gradeFormData, isStarred: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="grade-color">Color</Label>
+                <Select
+                  value={gradeFormData.color}
+                  onValueChange={(value) => setGradeFormData({ ...gradeFormData, color: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gradeColors.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full ${color.class}`} />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="is-active">Is Active</Label>
+                <Select
+                  value={gradeFormData.isActive ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setGradeFormData({ ...gradeFormData, isActive: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          {/* <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-grade-name">Grade Name</Label>
               <Input
@@ -749,7 +926,7 @@ export default function PositionsGradesPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </div> */}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditGradeDialogOpen(false)}>
               Cancel

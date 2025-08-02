@@ -22,17 +22,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
+import { Role, Team, User } from "@/types"
 
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  team: string
-  status: "active" | "inactive"
-  avatar?: string
-  createdAt: string
-}
+
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -41,17 +33,19 @@ export default function UsersPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    username: "",
+    password: "",
     role: "",
     team: "",
-    status: "active" as "active" | "inactive",
   })
   const { toast } = useToast()
 
   useEffect(() => {
     fetchUsers()
+    fetchRoles()
   }, [])
 
   const fetchUsers = async () => {
@@ -69,12 +63,44 @@ export default function UsersPage() {
     }
   }
 
+  const fetchRoles = async () => {
+    try {
+      const response = await api.get("/roles")
+      setRoles(response.data.data)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch roles",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchTeams = async () => {
+    try {
+      const response = await api.get("/teams")
+      setTeams(response.data.data)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch teams",
+        variant: "destructive",
+      })
+    }
+  }
+
+
   const handleAddUser = async () => {
     try {
-      const response = await api.post("/users", formData)
-      setUsers([...users, response.data])
+      const response = await api.post("/users", {
+        ...formData,
+        teamId: formData.team && formData.team !== "none" ? formData.team : null
+      })
+      setUsers([...users, response.data.data])
       setIsAddDialogOpen(false)
-      setFormData({ name: "", email: "", role: "", team: "", status: "active" })
+      setFormData({ username: "", role: "", team: "", password: "" })
       toast({
         title: "Success",
         description: "User added successfully",
@@ -92,11 +118,21 @@ export default function UsersPage() {
     if (!selectedUser) return
 
     try {
-      const response = await api.put(`/users/${selectedUser.id}`, formData)
-      setUsers(users.map((user) => (user.id === selectedUser.id ? response.data : user)))
+      const updateData: { [key: string]: any } = {
+        username: formData.username,
+        role: formData.role,
+        teamId: formData.team && formData.team !== "none" ? formData.team : null
+      }
+
+      if (formData.password.trim()) {
+        updateData.password = formData.password
+      }
+
+      const response = await api.patch(`/users/${selectedUser._id}`, updateData)
+      setUsers(users.map((user) => (user._id === selectedUser._id ? response.data.data : user)))
       setIsEditDialogOpen(false)
       setSelectedUser(null)
-      setFormData({ name: "", email: "", role: "", team: "", status: "active" })
+      setFormData({ username: "", role: "", team: "", password: "" })
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -113,7 +149,7 @@ export default function UsersPage() {
   const handleDeleteUser = async (userId: string) => {
     try {
       await api.delete(`/users/${userId}`)
-      setUsers(users.filter((user) => user.id !== userId))
+      setUsers(users.filter((user) => user._id !== userId))
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -129,21 +165,21 @@ export default function UsersPage() {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user)
+
     setFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      team: user.team,
-      status: user.status,
+      username: user.username,
+      password: "",
+      role: user.role?._id || "",
+      team: user.team?._id || "none",
     })
     setIsEditDialogOpen(true)
   }
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.team?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.role?.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   if (loading) {
@@ -154,7 +190,7 @@ export default function UsersPage() {
             <h1 className="text-3xl font-bold tracking-tight">Users</h1>
             <p className="text-muted-foreground">Manage system users and their permissions</p>
           </div>
-        </div>            
+        </div>
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-center h-32">
@@ -190,19 +226,19 @@ export default function UsersPage() {
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="Enter user name"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter email address"
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
                 />
               </div>
               <div className="grid gap-2">
@@ -212,10 +248,13 @@ export default function UsersPage() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="judge">Judge</SelectItem>
-                    <SelectItem value="coordinator">Coordinator</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
+                    {
+                      roles.map((role) => (
+                        <SelectItem key={role._id} value={role._id}>
+                          {role.name}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               </div>
@@ -226,10 +265,14 @@ export default function UsersPage() {
                     <SelectValue placeholder="Select team" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="red">Red Team</SelectItem>
-                    <SelectItem value="blue">Blue Team</SelectItem>
-                    <SelectItem value="green">Green Team</SelectItem>
-                    <SelectItem value="yellow">Yellow Team</SelectItem>
+                    <SelectItem value="none">No Team</SelectItem>
+                    {
+                      teams.map((team) => (
+                        <SelectItem key={team._id} value={team._id}>
+                          {team.name}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               </div>
@@ -265,33 +308,33 @@ export default function UsersPage() {
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Team</TableHead>
-                <TableHead>Status</TableHead>
+                {/* <TableHead>Status</TableHead> */}
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user._id}>
                   <TableCell className="flex items-center space-x-3">
                     <Avatar>
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="font-medium">{user.username}</div>
+                      <div className="text-sm text-muted-foreground">{user.role?.name}</div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{user.role}</Badge>
+                    <Badge variant="outline">{user.role?.name}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{user.team}</Badge>
+                    <Badge variant="secondary">{user.team ? user.team.name : "null"}</Badge>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <Badge variant={user.status === "active" ? "default" : "secondary"}>{user.status}</Badge>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -305,7 +348,7 @@ export default function UsersPage() {
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user._id)} className="text-destructive">
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
@@ -328,33 +371,36 @@ export default function UsersPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">Username</Label>
               <Input
                 id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="Enter username"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-password">Password</Label>
               <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                id="edit-password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Leave empty to keep current password"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-role">Role</Label>
               <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="judge">Judge</SelectItem>
-                  <SelectItem value="coordinator">Coordinator</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role._id} value={role._id}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -362,34 +408,25 @@ export default function UsersPage() {
               <Label htmlFor="edit-team">Team</Label>
               <Select value={formData.team} onValueChange={(value) => setFormData({ ...formData, team: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select team" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="red">Red Team</SelectItem>
-                  <SelectItem value="blue">Blue Team</SelectItem>
-                  <SelectItem value="green">Green Team</SelectItem>
-                  <SelectItem value="yellow">Yellow Team</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="none">No Team</SelectItem>
+                  {teams.map((team) => (
+                    <SelectItem key={team._id} value={team._id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false)
+              setSelectedUser(null)
+              setFormData({ username: "", role: "", team: "", password: "" })
+            }}>
               Cancel
             </Button>
             <Button onClick={handleEditUser}>Update User</Button>

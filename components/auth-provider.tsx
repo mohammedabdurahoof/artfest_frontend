@@ -8,14 +8,20 @@ import axios from "@/lib/axios"
 interface User {
   id: string
   username: string
-  team?: string
-  role?: string
+  teamId?: {
+    id: string
+    name: string
+  }
+  role?: {
+    id: string
+    name: string
+  }
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<void>
   logout: () => void
 }
 
@@ -38,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const response = await axios.get("/auth/me")
+      const response = await axios.get("/users/me")
       setUser(response.data.user)
     } catch (error) {
       localStorage.removeItem("token")
@@ -48,13 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const response = await axios.post("/auth/login", { email, password })
+      const response = await axios.post("/users/login", { username, password })
       const { token, user: userData } = response.data
 
       localStorage.setItem("token", token)
-      document.cookie = `token=${token}; path=/; max-age=86400; secure; samesite=strict`
+      document.cookie = `token=${token}; path=/; max-age=604800; secure; samesite=strict`
 
       setUser(userData)
     } catch (error: any) {
