@@ -66,7 +66,7 @@ export default function TeamsPage() {
     e.preventDefault()
     try {
       if (editingTeam) {
-        await axiosInstance.put(`/teams/${editingTeam._id}`, formData)
+        await axiosInstance.patch(`/teams/${editingTeam._id}`, formData)
         toast({
           title: "Success",
           description: "Team updated successfully",
@@ -96,9 +96,9 @@ export default function TeamsPage() {
     setFormData({
       name: team.name,
       color: team.color,
-      leader: team.leader,
-      asstLeaders: team.asstLeaders,
-      userId: team.userId,
+      leader: team.leader?._id || "",
+      asstLeaders: team.asstLeaders.map((leader) => leader._id),
+      userId: team.userId?._id || "",
     })
     setIsEditDialogOpen(true)
   }
@@ -136,7 +136,7 @@ export default function TeamsPage() {
   const filteredTeams = teams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.leader.toLowerCase().includes(searchTerm.toLowerCase()),
+      team.leader?.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const handleAssistantLeaderChange = (value: string, index: number) => {
@@ -335,12 +335,12 @@ export default function TeamsPage() {
                       <span className="font-medium">{team.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{team.leader}</TableCell>
+                  <TableCell>{team.leader?.name}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {team.asstLeaders.map((leader, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
-                          {leader}
+                          {leader?.name}
                         </Badge>
                       ))}
                     </div>
@@ -351,8 +351,8 @@ export default function TeamsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {team.team ? (
-                      <Badge variant="secondary">{team.team.name}</Badge>
+                    {team.userId ? (
+                      <Badge variant="secondary">{team.userId.username}</Badge>
                     ) : (
                       <span className="text-muted-foreground">Not assigned</span>
                     )}

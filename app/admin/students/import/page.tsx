@@ -22,8 +22,8 @@ interface ImportStudent {
   chestNo: string
   class: string
   category: Category
-  teamName: string
-  teamId?: string
+  teamName?: string
+  team?: string
   status: "pending" | "success" | "error"
   error?: string
 }
@@ -110,7 +110,7 @@ Omar Ibrahim,C003,8th Grade,Ula,Green Team`
           class: studentClass,
           category: category as Category,
           teamName,
-          teamId: team?._id,
+          team: team?._id,
           status: "pending",
         }
 
@@ -170,7 +170,7 @@ Omar Ibrahim,C003,8th Grade,Ula,Green Team`
             chestNo: student.chestNo,
             class: student.class,
             category: student.category,
-            teamId: student.teamId,
+            team: student.team,
           })
 
           student.status = "success"

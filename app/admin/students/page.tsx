@@ -45,7 +45,7 @@ export default function StudentsPage() {
     chestNo: "",
     class: "",
     category: "Bidaya",
-    teamId: "",
+    team: "",
   })
 
   useEffect(() => {
@@ -97,6 +97,8 @@ export default function StudentsPage() {
   }
 
   const getTeamColor = (team: Team) => {
+
+    if (!team || !team.color) return { backgroundColor: "transparent", color: "inherit", borderColor: "transparent" }
     return {
       backgroundColor: `${team.color}20`,
       color: team.color,
@@ -111,7 +113,7 @@ export default function StudentsPage() {
       chestNo: student.chestNo,
       class: student.class,
       category: student.category,
-      teamId: student.teamId,
+      team: student.team?._id,
     })
     setEditDialogOpen(true)
   }
@@ -125,7 +127,7 @@ export default function StudentsPage() {
     if (!selectedStudent) return
 
     try {
-      await axiosInstance.put(`/students/${selectedStudent._id}`, editFormData)
+      await axiosInstance.patch(`/students/${selectedStudent._id}`, editFormData)
       toast({
         title: "Success",
         description: "Student updated successfully",
@@ -275,7 +277,7 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge style={getTeamColor(student.team)} className="border">
-                        {student.team.name}
+                        {student.team?.name}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -377,8 +379,8 @@ export default function StudentsPage() {
                 Team
               </Label>
               <Select
-                value={editFormData.teamId}
-                onValueChange={(value) => setEditFormData((prev) => ({ ...prev, teamId: value }))}
+                value={editFormData.team}
+                onValueChange={(value) => setEditFormData((prev) => ({ ...prev, team: value }))}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue />

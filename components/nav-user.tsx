@@ -42,7 +42,7 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.username}</span>
-                <span className="truncate text-xs">{user.teamId?.name || user.role?.name || "Admin"}</span>
+                <span className="truncate text-xs">{user.teamId?.name || user.roleName || "Admin"}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -61,7 +61,7 @@ export function NavUser() {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.username}</span>
-                  <span className="truncate text-xs">{user.teamId?.name || user.role?.name || "Admin"}</span>
+                  <span className="truncate text-xs">{user.teamId?.name || user.roleName || "Admin"}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

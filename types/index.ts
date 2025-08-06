@@ -1,6 +1,6 @@
 // Base types
 export type Category = "Bidaya" | "Ula" | "Thaniyya" | "Thanawiyya" | "Aliya"
-export type Status = "active" | "inactive" | "pending" | "completed" | "cancelled"
+export type Status = "active" | "inactive" | "pending" | "completed" | "cancelled" | "Scheduled" | "Draft"
 export type PositionCategory = "first" | "second" | "third"
 export type GradeCategory = "A" | "B" | "C"
 export type ResultStatus = "pending" | "processing" | "completed" | "published"
@@ -39,9 +39,9 @@ export interface Team {
   _id: string
   name: string
   color: string
-  leader: string
-  asstLeaders: string[]
-  userId: string
+  leader: Student
+  asstLeaders: Student[]
+  userId: User | null
   totalPoint: number
   categoriesPoint: {
     [key in Category]: number
@@ -58,7 +58,6 @@ export interface Student {
   class: string
   category: Category
   team: Team
-  teamId: string
   totalPoint: number
   createdAt: string
   updatedAt: string
@@ -83,14 +82,14 @@ export interface Program {
   duration: number // in minutes
   judge: Judge[]
   judgeIds: string[]
-  noOfCandidates: number
+  noOfParticipation: number
   isStage: boolean
   isGroup: boolean
   isRegistrable: boolean
   isItemRegistration: boolean
   isStarted: boolean
   category: Category
-  personPerParticipation: number
+  candidatesPerParticipation: number
   status: Status
   date: string
   startingTime: string
@@ -252,7 +251,7 @@ export interface StudentFormData {
   chestNo: string
   class: string
   category: Category
-  teamId: string
+  team: string
 }
 
 export interface ProgramFormData {
@@ -260,13 +259,13 @@ export interface ProgramFormData {
   name: string
   duration: number
   judgeIds: string[]
-  noOfCandidates: number
+  noOfParticipation: number
   isStage: boolean
   isGroup: boolean
   isRegistrable: boolean
   isItemRegistration: boolean
   category: Category
-  personPerParticipation: number
+  candidatesPerParticipation: number
   date: string
   startingTime: string
   endingTime: string

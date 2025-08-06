@@ -25,14 +25,12 @@ import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/components/auth-provider" // Import the real useAuth hook
+import type { NavItem, ProjectItem } from "@/types/auth" // Import types
 
 // This is sample data.
+// Permissions will be checked against the 'requiredPermission' field for each item.
 const data = {
-  user: {
-    name: "Admin User",
-    email: "admin@artfest.com",
-    avatar: "/placeholder.svg?height=32&width=32",
-  },
   teams: [
     {
       name: "ArtFest 2025",
@@ -46,23 +44,28 @@ const data = {
       url: "/admin",
       icon: Home,
       isActive: true,
+      requiredPermission: "view_dashboard",
     },
     {
       title: "Students",
       url: "/admin/students",
       icon: Users,
+      requiredPermission: "view_students",
       items: [
         {
           title: "All Students",
           url: "/admin/students",
+          requiredPermission: "view_students",
         },
         {
           title: "Add Student",
           url: "/admin/students/add",
+          requiredPermission: "add_student",
         },
         {
           title: "Import Students",
           url: "/admin/students/import",
+          requiredPermission: "import_students",
         },
       ],
     },
@@ -70,22 +73,27 @@ const data = {
       title: "Programs",
       url: "/admin/programs",
       icon: Calendar,
+      requiredPermission: "view_programs",
       items: [
         {
           title: "All Programs",
           url: "/admin/programs",
+          requiredPermission: "view_programs",
         },
         {
           title: "Add Program",
           url: "/admin/programs/add",
+          requiredPermission: "add_program",
         },
         {
           title: "Schedule",
           url: "/admin/programs/schedule",
+          requiredPermission: "view_schedule",
         },
         {
           title: "Results",
           url: "/admin/programs/results",
+          requiredPermission: "view_program_results",
         },
       ],
     },
@@ -93,18 +101,22 @@ const data = {
       title: "Teams",
       url: "/admin/teams",
       icon: Shield,
+      requiredPermission: "view_teams",
       items: [
         {
           title: "All Teams",
           url: "/admin/teams",
+          requiredPermission: "view_teams",
         },
         {
           title: "Add Team",
           url: "/admin/teams/add",
+          requiredPermission: "add_team",
         },
         {
           title: "Leaderboard",
           url: "/admin/teams/leaderboard",
+          requiredPermission: "view_leaderboard",
         },
       ],
     },
@@ -112,18 +124,22 @@ const data = {
       title: "Judges",
       url: "/admin/judges",
       icon: UserCheck,
+      requiredPermission: "view_judges",
       items: [
         {
           title: "All Judges",
           url: "/admin/judges",
+          requiredPermission: "view_judges",
         },
         {
           title: "Add Judge",
           url: "/admin/judges/add",
+          requiredPermission: "add_judge",
         },
         {
           title: "Assignments",
           url: "/admin/judges/assignments",
+          requiredPermission: "view_judge_assignments",
         },
       ],
     },
@@ -131,18 +147,22 @@ const data = {
       title: "Participation",
       url: "/admin/participation",
       icon: Trophy,
+      requiredPermission: "view_participation",
       items: [
         {
           title: "All Participations",
           url: "/admin/participation",
+          requiredPermission: "view_participation",
         },
         {
           title: "Register Participant",
           url: "/admin/participation/register",
+          requiredPermission: "register_participant",
         },
         {
           title: "Attendance",
           url: "/admin/participation/attendance",
+          requiredPermission: "view_attendance",
         },
       ],
     },
@@ -150,43 +170,52 @@ const data = {
       title: "Judgment",
       url: "/admin/judgment",
       icon: Award,
+      requiredPermission: "view_judgment",
       items: [
         {
           title: "All Judgments",
           url: "/admin/judgment",
+          requiredPermission: "view_judgment",
         },
         {
           title: "Add Judgment",
           url: "/admin/judgment/add",
+          requiredPermission: "add_judgment",
         },
         {
           title: "Reports",
           url: "/admin/judgment/reports",
+          requiredPermission: "view_judgment_reports",
         },
       ],
     },
-  ],
+  ] as NavItem[], // Cast to NavItem[]
   projects: [
     {
       name: "Content Management",
       url: "#",
       icon: FileText,
+      requiredPermission: "view_content_management",
       items: [
         {
           title: "Events",
           url: "/admin/events",
+          requiredPermission: "view_events",
         },
         {
           title: "Gallery",
           url: "/admin/gallery",
+          requiredPermission: "view_gallery",
         },
         {
           title: "News",
           url: "/admin/news",
+          requiredPermission: "view_news",
         },
         {
           title: "Downloads",
           url: "/admin/downloads",
+          requiredPermission: "view_downloads",
         },
       ],
     },
@@ -194,30 +223,36 @@ const data = {
       name: "System",
       url: "#",
       icon: Settings2,
+      requiredPermission: "view_system_settings",
       items: [
         {
           title: "Users",
           url: "/admin/users",
+          requiredPermission: "manage_users",
         },
         {
           title: "Roles & Permissions",
           url: "/admin/roles",
+          requiredPermission: "manage_roles_permissions",
         },
         {
           title: "Categories",
           url: "/admin/categories",
+          requiredPermission: "manage_categories",
         },
         {
           title: "Positions & Grades",
           url: "/admin/positions-grades",
+          requiredPermission: "manage_positions_grades",
         },
       ],
     },
-  ],
+  ] as ProjectItem[], // Cast to ProjectItem[]
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setTheme, theme } = useTheme()
+  const { user } = useAuth() // Get the authenticated user data
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -230,7 +265,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center justify-between p-2">
+          {/* NavUser will now display actual user data */}
           <NavUser />
+          {/* Theme Toggle remains */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">

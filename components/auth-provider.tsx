@@ -1,26 +1,17 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import axios from "@/lib/axios"
+import { Permission, User } from "@/types/auth"
 
-interface User {
-  id: string
-  username: string
-  teamId?: {
-    id: string
-    name: string
-  }
-  role?: {
-    id: string
-    name: string
-  }
-}
+
 
 interface AuthContextType {
   user: User | null
   loading: boolean
+  hasPermission: (permission: Permission) => boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -31,6 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  // Function to set user data, including role name and permissions
+  const setUserData = (userData: any) => {
+    // Assuming your backend sends user.role.name and user.role.permissions
+    // Adjust these paths based on your actual backend response structure
+    setUser({
+      id: userData.id,
+      username: userData.username,
+      teamId: userData.teamId,
+      roleId: userData.role?._id, // If you need the role ID
+      roleName: userData.role?.name, // Role name like "Admin", "Organizer"
+      permissions: userData.role?.permissions?.map((p: any) => p.name) || [], // Array of permission names
+    })
+  }
 
   useEffect(() => {
     checkAuth()
@@ -45,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await axios.get("/users/me")
-      setUser(response.data.user)
+      setUserData(response.data.user)
     } catch (error) {
       localStorage.removeItem("token")
       document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
@@ -61,8 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.setItem("token", token)
       document.cookie = `token=${token}; path=/; max-age=604800; secure; samesite=strict`
-
-      setUser(userData)
+      setUserData(userData)
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Login failed")
     }
@@ -75,7 +79,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login")
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      // If user is loading, we can't check permissions yet
+      if (loading) {
+        return false
+      }
+      if (user?.roleName === "Super Admin") {
+        return true // Super Admin has all permissions
+      }
+      // If user is null or permissions array is not available, return false
+      if (!user || !user.permissions) {
+        return false
+      }
+      // Check if the user's permissions array includes the required permission
+      return user.permissions.includes(permission)
+    },
+    [user],
+  )
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

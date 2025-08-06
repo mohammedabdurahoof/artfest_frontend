@@ -44,52 +44,8 @@ import {
 import { toast } from "@/hooks/use-toast"
 import axios from "@/lib/axios"
 import Link from "next/link"
-
-interface Program {
-  _id: string
-  programCode: string
-  name: string
-  description: string
-  duration: number
-  category: string
-  isStage: boolean
-  isGroup: boolean
-  maxParticipants: number
-  venue: string
-  date: string
-  startingTime: string
-  endingTime: string
-  status: "Active" | "Completed" | "Scheduled" | "Cancelled"
-  resultStatus: "Published" | "Pending" | "Not Started"
-  judge?: string
-  participants: string[]
-  createdAt: string
-  updatedAt: string
-}
-
-interface Student {
-  _id: string
-  name: string
-  chestNo: string
-  class: string
-  team: {
-    _id: string
-    name: string
-    color: string
-  }
-  category: string
-  isActive: boolean
-}
-
-interface Team {
-  _id: string
-  name: string
-  color: string
-  captain: string
-  members: number
-  totalPoints: number
-  isActive: boolean
-}
+import { Program, Student, Team } from "@/types"
+import { formatTimeTo12Hour } from "@/lib/utils"
 
 const categories = ["Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya"]
 const venues = ["Main Hall", "Auditorium", "Conference Room", "Outdoor Stage", "Classroom A", "Classroom B"]
@@ -108,6 +64,7 @@ export default function ProgramsPage() {
   const [selectedProgramForParticipants, setSelectedProgramForParticipants] = useState<Program | null>(null)
   const [availableStudents, setAvailableStudents] = useState<Student[]>([])
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [studentSearchTerm, setStudentSearchTerm] = useState("") // Add this state for search functionality
 
   const [programFormData, setProgramFormData] = useState({
     programCode: "",
@@ -117,12 +74,12 @@ export default function ProgramsPage() {
     category: "",
     isStage: true,
     isGroup: false,
-    maxParticipants: 1,
+    noOfParticipation: 1,
+    candidatesPerParticipation: 1,
     venue: "",
     date: "",
     startingTime: "",
     endingTime: "",
-    judge: "",
   })
 
   useEffect(() => {
@@ -148,19 +105,7 @@ export default function ProgramsPage() {
     }
   }
 
-  const fetchStudents = async () => {
-    try {
-      const response = await axios.get("/students")
-      setStudents(response.data.data || [])
-    } catch (error) {
-      console.error("Error fetching students:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch students",
-        variant: "destructive",
-      })
-    }
-  }
+  // Duplicate fetchStudents removed to fix redeclaration error.
 
   const fetchTeams = async () => {
     try {
@@ -179,19 +124,19 @@ export default function ProgramsPage() {
   const handleEditProgram = (program: Program) => {
     setEditingProgram(program)
     setProgramFormData({
-      programCode: program.programCode,
-      name: program.name,
-      description: program.description,
-      duration: program.duration,
-      category: program.category,
-      isStage: program.isStage,
-      isGroup: program.isGroup,
-      maxParticipants: program.maxParticipants,
-      venue: program.venue,
-      date: program.date,
-      startingTime: program.startingTime,
-      endingTime: program.endingTime,
-      judge: program.judge || "",
+      programCode: program.programCode || "",
+      name: program.name || "",
+      description: "",
+      duration: program.duration || 15,
+      category: program.category || "",
+      isStage: program.isStage || true,
+      isGroup: program.isGroup || false,
+      noOfParticipation: program.noOfParticipation || 1,
+      candidatesPerParticipation: program.candidatesPerParticipation || 1,
+      venue: program.venue || "",
+      date: program.date ? program.date.slice(0, 10) : "",
+      startingTime: program.startingTime || "",
+      endingTime: program.endingTime || "",
     })
     setIsEditDialogOpen(true)
   }
@@ -240,11 +185,25 @@ export default function ProgramsPage() {
     }
   }
 
+  const fetchStudents = async () => {
+    try {
+      const response = await axios.get("/students")
+      setAvailableStudents(response.data.data || [])
+    } catch (error) {
+      console.error("Error fetching students:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch students",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleManageParticipants = (program: Program) => {
     setSelectedProgramForParticipants(program)
     // Filter students by program category and availability
     const filtered = students.filter((student) => student.category === program.category && student.isActive)
-    setAvailableStudents(filtered)
+    // setAvailableStudents(filtered)
     setSelectedStudents(program.participants || [])
     setIsParticipantsDialogOpen(true)
   }
@@ -290,6 +249,12 @@ export default function ProgramsPage() {
       program.venue.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  const filteredAvailableStudents = availableStudents.filter((student) =>
+    student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+    student.chestNo.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+    student.class.toLowerCase().includes(studentSearchTerm.toLowerCase())
+  ) // Add this filtered students computation
+
   const getStatusColor = (status: string) => {
     const colors = {
       Active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
@@ -310,9 +275,9 @@ export default function ProgramsPage() {
   }
 
   const totalPrograms = programs.length
-  const activePrograms = programs.filter((p) => p.status === "Active").length
-  const completedPrograms = programs.filter((p) => p.status === "Completed").length
-  const totalParticipants = programs.reduce((sum, p) => sum + (p.participants?.length || 0), 0)
+  const scheduledPrograms = programs.filter((p) => p.status === "Scheduled").length
+  const completedPrograms = programs.filter((p) => p.status === "completed").length
+  const resultAnnounced = programs.filter((p) => p.resultStatus === "published").length
 
   if (loading) {
     return (
@@ -375,7 +340,7 @@ export default function ProgramsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPrograms}</div>
-            <p className="text-xs text-muted-foreground">{activePrograms} active programs</p>
+            <p className="text-xs text-muted-foreground">{scheduledPrograms} active programs</p>
           </CardContent>
         </Card>
         <Card>
@@ -384,7 +349,7 @@ export default function ProgramsPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activePrograms}</div>
+            <div className="text-2xl font-bold">{scheduledPrograms}</div>
             <p className="text-xs text-muted-foreground">Currently running</p>
           </CardContent>
         </Card>
@@ -400,11 +365,11 @@ export default function ProgramsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
+            <CardTitle className="text-sm font-medium">Result Announced</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalParticipants}</div>
+            <div className="text-2xl font-bold">{resultAnnounced}</div>
             <p className="text-xs text-muted-foreground">Across all programs</p>
           </CardContent>
         </Card>
@@ -471,9 +436,9 @@ export default function ProgramsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>
+                        {/* <span>
                           {program.participants?.length || 0}/{program.maxParticipants}
-                        </span>
+                        </span> */}
                         <Button variant="outline" size="sm" onClick={() => handleManageParticipants(program)}>
                           <UserPlus className="h-3 w-3" />
                         </Button>
@@ -481,16 +446,16 @@ export default function ProgramsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{new Date(program.date).toLocaleDateString()}</div>
+                        <div>{program.date && new Date(program.date).toLocaleDateString()}</div>
                         <div className="text-muted-foreground">
-                          {program.startingTime} - {program.endingTime}
+                          {program.startingTime && formatTimeTo12Hour(program.startingTime)} - {program.endingTime && formatTimeTo12Hour(program.endingTime)}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <MapPin className="h-3 w-3" />
-                        {program.venue}
+                        {program.venue || "N/A"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -609,18 +574,29 @@ export default function ProgramsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-maxParticipants">Max Participants</Label>
+                <Label htmlFor="edit-candidatesPerParticipation"> Candidates per Participation </Label>
                 <Input
-                  id="edit-maxParticipants"
+                  id="edit-candidatesPerParticipation"
                   type="number"
-                  value={programFormData.maxParticipants}
+                  value={programFormData.candidatesPerParticipation}
                   onChange={(e) =>
-                    setProgramFormData({ ...programFormData, maxParticipants: Number.parseInt(e.target.value) })
+                    setProgramFormData({ ...programFormData, candidatesPerParticipation: Number.parseInt(e.target.value) })
                   }
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-noOfParticipation">Number of Participation</Label>
+                <Input
+                  id="edit-noOfParticipation"
+                  type="number"
+                  value={programFormData.noOfParticipation}
+                  onChange={(e) =>
+                    setProgramFormData({ ...programFormData, noOfParticipation: Number.parseInt(e.target.value) })
+                  }
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-venue">Venue</Label>
                 <Select
@@ -639,14 +615,7 @@ export default function ProgramsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-judge">Judge</Label>
-                <Input
-                  id="edit-judge"
-                  value={programFormData.judge}
-                  onChange={(e) => setProgramFormData({ ...programFormData, judge: e.target.value })}
-                />
-              </div>
+
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
@@ -714,73 +683,152 @@ export default function ProgramsPage() {
               Add or remove participants for "{selectedProgramForParticipants?.name}"
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Category: {selectedProgramForParticipants?.category} | Max Participants:{" "}
-              {selectedProgramForParticipants?.maxParticipants}
+              Category: {selectedProgramForParticipants?.category} | No of Participation:{" "}
+              {selectedProgramForParticipants?.noOfParticipation} | Candidates per Participation:{" "}
+              {selectedProgramForParticipants?.candidatesPerParticipation}
             </div>
+
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label>Available Students ({availableStudents.length})</Label>
-                <div className="max-h-60 overflow-y-auto border rounded-md p-2">
-                  {availableStudents.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No students available for this category
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {availableStudents.map((student) => (
-                        <div key={student._id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={student._id}
-                            checked={selectedStudents.includes(student._id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                if (selectedStudents.length < (selectedProgramForParticipants?.maxParticipants || 0)) {
-                                  setSelectedStudents([...selectedStudents, student._id])
-                                } else {
-                                  toast({
-                                    title: "Maximum participants reached",
-                                    description: "Cannot add more participants to this program",
-                                    variant: "destructive",
-                                  })
-                                }
-                              } else {
-                                setSelectedStudents(selectedStudents.filter((id) => id !== student._id))
-                              }
-                            }}
-                          />
-                          <Label htmlFor={student._id} className="flex-1 cursor-pointer">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-medium">{student.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  Chest No: {student.chestNo} | Class: {student.class}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: student.team.color }} />
-                                <span className="text-sm">{student.team.name}</span>
-                              </div>
-                            </div>
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex items-center justify-between">
+                  <Label>Available Students ({filteredAvailableStudents.length})</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Selected: {selectedStudents.length} / {(selectedProgramForParticipants?.noOfParticipation ?? 0) * (selectedProgramForParticipants?.candidatesPerParticipation ?? 0)}
+                  </div>
                 </div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Selected: {selectedStudents.length} / {selectedProgramForParticipants?.maxParticipants}
+
+                {/* Search Input */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {Array.from({ length: selectedProgramForParticipants?.noOfParticipation || 0 }).map((_, index) => (
+                    <div key={index}>
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder={`Search for participation ${index + 1}...`}
+                          value={studentSearchTerm}
+                          onChange={(e) => setStudentSearchTerm(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+
+                      {/* Students List */}
+                      <div className="max-h-60 overflow-y-auto border rounded-md p-2 mt-2">
+                        {filteredAvailableStudents.length === 0 ? (
+                          <div className="text-center py-4 text-muted-foreground">
+                            {studentSearchTerm
+                              ? "No students found matching your search"
+                              : "No students available for this category"}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {filteredAvailableStudents.map((student) => (
+                              <div
+                                key={student._id}
+                                className="flex items-center space-x-2 p-2 rounded hover:bg-muted/50"
+                              >
+                                <Checkbox
+                                  id={student._id}
+                                  checked={selectedStudents.includes(student._id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      const maxParticipants =
+                                        (selectedProgramForParticipants?.noOfParticipation || 0) *
+                                        (selectedProgramForParticipants?.candidatesPerParticipation || 0);
+                                      if (selectedStudents.length < maxParticipants) {
+                                        setSelectedStudents([...selectedStudents, student._id]);
+                                      } else {
+                                        toast({
+                                          title: "Maximum participants reached",
+                                          description: `Cannot add more than ${maxParticipants} participants to this program`,
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    } else {
+                                      setSelectedStudents(
+                                        selectedStudents.filter((id) => id !== student._id)
+                                      );
+                                    }
+                                  }}
+                                />
+                                <Label htmlFor={student._id} className="flex-1 cursor-pointer">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <div className="font-medium">{student.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Chest No: <span className="font-mono">{student.chestNo}</span> | Class:{" "}
+                                        {student.class}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4">
+                                      <div
+                                        className="w-3 h-3 rounded-full border"
+                                        style={{ backgroundColor: student.team?.color || "#gray" }}
+                                      />
+                                      <span className="text-sm font-medium">{student.team?.name || "No Team"}</span>
+                                    </div>
+                                  </div>
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Selected Students Summary */}
+                      {selectedStudents.length > 0 && (
+                        <div className="space-y-2 mt-4">
+                          <Label>Selected Students ({selectedStudents.length})</Label>
+                          <div className="max-h-32 overflow-y-auto border rounded-md p-2 bg-muted/20">
+                            <div className="flex flex-wrap gap-2">
+                              {selectedStudents.map((studentId) => {
+                                const student = availableStudents.find((s) => s._id === studentId);
+                                if (!student) return null;
+                                return (
+                                  <div
+                                    key={studentId}
+                                    className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-sm"
+                                  >
+                                    <span>{student.name}</span>
+                                    <span className="text-muted-foreground">({student.chestNo})</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                      onClick={() =>
+                                        setSelectedStudents(selectedStudents.filter((id) => id !== studentId))
+                                      }
+                                    >
+                                      ×
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsParticipantsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateParticipants}>Update Participants</Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsParticipantsDialogOpen(false)
+                setStudentSearchTerm("") // Clear search when closing
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateParticipants}>
+                Update Participants
+              </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
 

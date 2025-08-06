@@ -1,58 +1,68 @@
 "use client"
 
-import type { LucideIcon } from "lucide-react"
+import { ChevronRight } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/components/auth-provider" // Import useAuth
+import type { ProjectItem } from "@/types/auth" // Import ProjectItem type
 
 export function NavProjects({
   projects,
 }: {
-  projects: {
-    name: string
-    url: string
-    icon: LucideIcon
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+  projects: ProjectItem[] // Use the new ProjectItem type
 }) {
-  const { isMobile } = useSidebar()
+  const { hasPermission } = useAuth() // Get hasPermission from context
+
+  // Filter top-level projects based on permissions
+  const filteredProjects = projects.filter((project) =>
+    project.requiredPermission ? hasPermission(project.requiredPermission) : true,
+  )
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Management</SidebarGroupLabel>
+    <SidebarGroup>
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
-          <Collapsible key={item.name} asChild defaultOpen={false} className="group/collapsible">
+        {filteredProjects.map((project) => (
+          <Collapsible key={project.name} asChild className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.name}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                <SidebarMenuButton tooltip={project.name}>
+                  {project.icon && <project.icon />}
+                  <Link href={project.url}>{project.name}</Link>
+                  {project.items && (
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  )}
                 </SidebarMenuButton>
               </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="ml-4 space-y-1">
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuButton key={subItem.title} asChild size="sm">
-                      <Link href={subItem.url}>
-                        <span>{subItem.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  ))}
-                </div>
-              </CollapsibleContent>
+              {project.items && (
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {project.items
+                      .filter((subItem) =>
+                        subItem.requiredPermission ? hasPermission(subItem.requiredPermission) : true,
+                      ) // Filter sub-items
+                      .map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild>
+                            <Link href={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              )}
             </SidebarMenuItem>
           </Collapsible>
         ))}

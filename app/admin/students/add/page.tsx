@@ -26,7 +26,7 @@ export default function AddStudentPage() {
     chestNo: "",
     class: "",
     category: "Bidaya",
-    teamId: "",
+    team: "",
   })
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function AddStudentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.chestNo || !formData.class || !formData.teamId) {
+    if (!formData.name || !formData.chestNo || !formData.class || !formData.category) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -162,8 +162,8 @@ export default function AddStudentPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="team">Team *</Label>
-                <Select value={formData.teamId} onValueChange={(value) => handleInputChange("teamId", value)}>
+                <Label htmlFor="team">Team</Label>
+                <Select value={formData.team} onValueChange={(value) => handleInputChange("team", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select team" />
                   </SelectTrigger>
