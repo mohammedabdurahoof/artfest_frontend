@@ -63,8 +63,8 @@ export default function ProgramsPage() {
   const [programToDelete, setProgramToDelete] = useState<Program | null>(null)
   const [selectedProgramForParticipants, setSelectedProgramForParticipants] = useState<Program | null>(null)
   const [availableStudents, setAvailableStudents] = useState<Student[]>([])
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-  const [studentSearchTerm, setStudentSearchTerm] = useState("") // Add this state for search functionality
+  const [selectedStudents, setSelectedStudents] = useState<string[][]>([]) // Changed to nested array
+  const [studentSearchTerm, setStudentSearchTerm] = useState<string[]>([]) // Changed to array
 
   const [programFormData, setProgramFormData] = useState({
     programCode: "",
@@ -104,8 +104,6 @@ export default function ProgramsPage() {
       setLoading(false)
     }
   }
-
-  // Duplicate fetchStudents removed to fix redeclaration error.
 
   const fetchTeams = async () => {
     try {
@@ -199,12 +197,66 @@ export default function ProgramsPage() {
     }
   }
 
+  const addStudentToSelection = (studentId: string, participationIndex: number) => {
+    setSelectedStudents(prev => {
+      const newSelected = [...prev]
+      if (!newSelected[participationIndex]) {
+        newSelected[participationIndex] = []
+      }
+      
+      const maxCandidatesPerParticipation = selectedProgramForParticipants?.candidatesPerParticipation || 0
+      
+      if (!newSelected[participationIndex].includes(studentId)) {
+        if (newSelected[participationIndex].length < maxCandidatesPerParticipation) {
+          newSelected[participationIndex] = [...newSelected[participationIndex], studentId]
+        } else {
+          toast({
+            title: "Maximum participants reached",
+            description: `Cannot add more than ${maxCandidatesPerParticipation} participants to participation ${participationIndex + 1}`,
+            variant: "destructive",
+          })
+        }
+      }
+      
+      return newSelected
+    })
+  }
+
+  const removeStudentFromSelection = (studentId: string, participationIndex: number) => {
+    setSelectedStudents(prev => {
+      const newSelected = [...prev]
+      if (newSelected[participationIndex]) {
+        newSelected[participationIndex] = newSelected[participationIndex].filter(id => id !== studentId)
+      }
+      return newSelected
+    })
+  }
+
+  const clearSelectedStudents = () => {
+    const noOfParticipation = selectedProgramForParticipants?.noOfParticipation || 0
+    setSelectedStudents(Array.from({ length: noOfParticipation }, () => []))
+  }
+
+  const initializeSelectedStudents = (participantIds: string[][] = []) => {
+    setSelectedStudents(participantIds)
+  }
+
   const handleManageParticipants = (program: Program) => {
     setSelectedProgramForParticipants(program)
-    // Filter students by program category and availability
-    const filtered = students.filter((student) => student.category === program.category && student.isActive)
-    // setAvailableStudents(filtered)
-    setSelectedStudents(program.participants || [])
+    const filtered = students.filter((student) => student.category === program.category)
+    
+    // Initialize nested arrays based on noOfParticipation
+    const noOfParticipation = program.noOfParticipation || 0
+    
+    // Initialize with existing participants or empty arrays
+    // const initialSelected = program.participants 
+    //   ? Array.isArray(program.participants[0]) 
+    //     ? program.participants as string[][] 
+    //     : [program.participants as string[]] // Convert single array to nested
+    //   : Array.from({ length: noOfParticipation }, () => [])
+    
+    // initializeSelectedStudents(initialSelected)
+    setStudentSearchTerm(Array.from({ length: noOfParticipation }, () => ""))
     setIsParticipantsDialogOpen(true)
   }
 
@@ -213,7 +265,7 @@ export default function ProgramsPage() {
 
     try {
       await axios.patch(`/programs/${selectedProgramForParticipants._id}`, {
-        participants: selectedStudents,
+        participants: selectedStudents, // Now sending nested array
       })
       toast({
         title: "Success",
@@ -222,6 +274,7 @@ export default function ProgramsPage() {
       setIsParticipantsDialogOpen(false)
       setSelectedProgramForParticipants(null)
       setSelectedStudents([])
+      setStudentSearchTerm([])
       fetchPrograms()
     } catch (error) {
       console.error("Error updating participants:", error)
@@ -249,11 +302,12 @@ export default function ProgramsPage() {
       program.venue.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const filteredAvailableStudents = availableStudents.filter((student) =>
-    student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-    student.chestNo.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-    student.class.toLowerCase().includes(studentSearchTerm.toLowerCase())
-  ) // Add this filtered students computation
+  const filteredAvailableStudents = availableStudents
+  // .filter((student) =>
+  //   student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+  //   student.chestNo.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+  //   student.class.toLowerCase().includes(studentSearchTerm.toLowerCase())
+  // ) // Add this filtered students computation
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -690,27 +744,28 @@ export default function ProgramsPage() {
               {selectedProgramForParticipants?.noOfParticipation} | Candidates per Participation:{" "}
               {selectedProgramForParticipants?.candidatesPerParticipation}
             </div>
-
             <div className="grid gap-4">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Available Students ({filteredAvailableStudents.length})</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Selected: {selectedStudents.length} / {(selectedProgramForParticipants?.noOfParticipation ?? 0) * (selectedProgramForParticipants?.candidatesPerParticipation ?? 0)}
-                  </div>
-                </div>
+
 
                 {/* Search Input */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {Array.from({ length: selectedProgramForParticipants?.noOfParticipation || 0 }).map((_, index) => (
                     <div key={index}>
+                      <div className="flex items-center justify-between m-2">
+                        <Label>Available Students ({filteredAvailableStudents.length})</Label>
+                        <div className="text-sm text-muted-foreground">
+                          Selected: {selectedStudents.length} / {(selectedProgramForParticipants?.noOfParticipation ?? 0) * (selectedProgramForParticipants?.candidatesPerParticipation ?? 0)}
+                        </div>
+                      </div>
+
                       {/* Search Input */}
                       <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder={`Search for participation ${index + 1}...`}
-                          value={studentSearchTerm}
-                          onChange={(e) => setStudentSearchTerm(e.target.value)}
+                          value={studentSearchTerm[index] || ""}
+                          onChange={(e) => updateSearchTerm(e.target.value, index)}
                           className="pl-8"
                         />
                       </div>
@@ -719,9 +774,9 @@ export default function ProgramsPage() {
                       <div className="max-h-60 overflow-y-auto border rounded-md p-2 mt-2">
                         {filteredAvailableStudents.length === 0 ? (
                           <div className="text-center py-4 text-muted-foreground">
-                            {studentSearchTerm
+                            {studentSearchTerm[index]
                               ? "No students found matching your search"
-                              : "No students available for this category"}
+                              : "No students available"}
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -731,30 +786,17 @@ export default function ProgramsPage() {
                                 className="flex items-center space-x-2 p-2 rounded hover:bg-muted/50"
                               >
                                 <Checkbox
-                                  id={student._id}
-                                  checked={selectedStudents.includes(student._id)}
+                                  id={`${student._id}-${index}`}
+                                  checked={selectedStudents[index]?.includes(student._id)}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      const maxParticipants =
-                                        (selectedProgramForParticipants?.noOfParticipation || 0) *
-                                        (selectedProgramForParticipants?.candidatesPerParticipation || 0);
-                                      if (selectedStudents.length < maxParticipants) {
-                                        setSelectedStudents([...selectedStudents, student._id]);
-                                      } else {
-                                        toast({
-                                          title: "Maximum participants reached",
-                                          description: `Cannot add more than ${maxParticipants} participants to this program`,
-                                          variant: "destructive",
-                                        });
-                                      }
+                                      addStudentToSelection(student._id, index)
                                     } else {
-                                      setSelectedStudents(
-                                        selectedStudents.filter((id) => id !== student._id)
-                                      );
+                                      removeStudentFromSelection(student._id, index)
                                     }
                                   }}
                                 />
-                                <Label htmlFor={student._id} className="flex-1 cursor-pointer">
+                                <Label htmlFor={`${student._id}-${index}`} className="flex-1 cursor-pointer">
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="font-medium">{student.name}</div>
@@ -779,14 +821,14 @@ export default function ProgramsPage() {
                       </div>
 
                       {/* Selected Students Summary */}
-                      {selectedStudents.length > 0 && (
+                      {selectedStudents[index]?.length > 0 && (
                         <div className="space-y-2 mt-4">
-                          <Label>Selected Students ({selectedStudents.length})</Label>
-                          <div className="max-h-32 overflow-y-auto border rounded-md p-2 bg-muted/20">
+                          <Label>Selected for Participation {index + 1} ({selectedStudents[index]?.length})</Label>
+                          <div className="max-h-24 overflow-y-auto border rounded-md p-2 bg-muted/20">
                             <div className="flex flex-wrap gap-2">
-                              {selectedStudents.map((studentId) => {
-                                const student = availableStudents.find((s) => s._id === studentId);
-                                if (!student) return null;
+                              {selectedStudents[index]?.map((studentId) => {
+                                const student = availableStudents.find((s) => s._id === studentId)
+                                if (!student) return null
                                 return (
                                   <div
                                     key={studentId}
@@ -798,14 +840,12 @@ export default function ProgramsPage() {
                                       variant="ghost"
                                       size="sm"
                                       className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                                      onClick={() =>
-                                        setSelectedStudents(selectedStudents.filter((id) => id !== studentId))
-                                      }
+                                      onClick={() => removeStudentFromSelection(studentId, index)}
                                     >
                                       ×
                                     </Button>
                                   </div>
-                                );
+                                )
                               })}
                             </div>
                           </div>
@@ -818,17 +858,18 @@ export default function ProgramsPage() {
             </div>
           </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setIsParticipantsDialogOpen(false)
-                setStudentSearchTerm("") // Clear search when closing
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateParticipants}>
-                Update Participants
-              </Button>
-            </DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsParticipantsDialogOpen(false)
+              clearSearchTerms()
+              clearSelectedStudents()
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateParticipants}>
+              Update Participants
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
