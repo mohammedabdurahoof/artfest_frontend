@@ -44,7 +44,7 @@ export interface User {
   id: string
   username: string
   teamId?: {
-    id: string
+    _id: string
     name: string
   }
   roleId?: string // Original role ID from backend
