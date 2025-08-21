@@ -29,7 +29,9 @@ axiosInstance.interceptors.response.use(
       if (typeof window !== "undefined") {
         localStorage.removeItem("token")
         document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-        window.location.href = "/login"
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login"
+        }
       }
     }
     return Promise.reject(error)

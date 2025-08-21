@@ -4,14 +4,14 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import axios from "@/lib/axios"
-import { Permission, User } from "@/types/auth"
+import {  User } from "@/types/auth"
 
 
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  hasPermission: (permission: Permission) => boolean
+  hasPermission: (permission: string) => boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const hasPermission = useCallback(
-    (permission: Permission): boolean => {
+    (permission: string): boolean => {
       // If user is loading, we can't check permissions yet
       if (loading) {
         return false

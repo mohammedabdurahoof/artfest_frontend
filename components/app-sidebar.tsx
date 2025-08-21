@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  Folders,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -45,6 +46,29 @@ const data = {
       icon: Home,
       isActive: true,
       requiredPermission: "view_dashboard",
+    },
+    {
+      title: "Teams",
+      url: "/admin/teams",
+      icon: Shield,
+      requiredPermission: "view_teams",
+      items: [
+        {
+          title: "All Teams",
+          url: "/admin/teams",
+          requiredPermission: "view_teams",
+        },
+        {
+          title: "Add Team",
+          url: "/admin/teams/add",
+          requiredPermission: "add_team",
+        },
+        {
+          title: "Leaderboard",
+          url: "/admin/teams/leaderboard",
+          requiredPermission: "view_leaderboard",
+        },
+      ],
     },
     {
       title: "Students",
@@ -97,27 +121,19 @@ const data = {
         },
       ],
     },
+
+
     {
-      title: "Teams",
-      url: "/admin/teams",
-      icon: Shield,
-      requiredPermission: "view_teams",
+      title: "Curbs",
+      url: "/admin/curbs",
+      icon: Folders,
+      requiredPermission: "view_curbs",
       items: [
         {
-          title: "All Teams",
-          url: "/admin/teams",
-          requiredPermission: "view_teams",
-        },
-        {
-          title: "Add Team",
-          url: "/admin/teams/add",
-          requiredPermission: "add_team",
-        },
-        {
-          title: "Leaderboard",
-          url: "/admin/teams/leaderboard",
-          requiredPermission: "view_leaderboard",
-        },
+          title: "All Curbs",
+          url: "/admin/curbs",
+          requiredPermission: "view_curbs",
+        }
       ],
     },
     {
@@ -134,7 +150,7 @@ const data = {
         {
           title: "Add Judge",
           url: "/admin/judges/add",
-          requiredPermission: "add_judge",
+          requiredPermission: "add_judges",
         },
         {
           title: "Assignments",
@@ -144,43 +160,20 @@ const data = {
       ],
     },
     {
-      title: "Participation",
-      url: "/admin/participation",
-      icon: Trophy,
-      requiredPermission: "view_participation",
-      items: [
-        {
-          title: "All Participations",
-          url: "/admin/participation",
-          requiredPermission: "view_participation",
-        },
-        {
-          title: "Register Participant",
-          url: "/admin/participation/register",
-          requiredPermission: "register_participant",
-        },
-        {
-          title: "Attendance",
-          url: "/admin/participation/attendance",
-          requiredPermission: "view_attendance",
-        },
-      ],
-    },
-    {
       title: "Judgment",
       url: "/admin/judgment",
       icon: Award,
-      requiredPermission: "view_judgment",
+      requiredPermission: "view_judgments",
       items: [
         {
           title: "All Judgments",
           url: "/admin/judgment",
-          requiredPermission: "view_judgment",
+          requiredPermission: "view_judgments",
         },
         {
           title: "Add Judgment",
           url: "/admin/judgment/add",
-          requiredPermission: "add_judgment",
+          requiredPermission: "add_judgments",
         },
         {
           title: "Reports",
@@ -205,7 +198,7 @@ const data = {
         {
           title: "Gallery",
           url: "/admin/gallery",
-          requiredPermission: "view_gallery",
+          requiredPermission: "view_gallery_items",
         },
         {
           title: "News",
@@ -215,7 +208,7 @@ const data = {
         {
           title: "Downloads",
           url: "/admin/downloads",
-          requiredPermission: "view_downloads",
+          requiredPermission: "view_download_items",
         },
       ],
     },
@@ -228,22 +221,22 @@ const data = {
         {
           title: "Users",
           url: "/admin/users",
-          requiredPermission: "manage_users",
+          requiredPermission: "view_users",
         },
         {
           title: "Roles & Permissions",
           url: "/admin/roles",
-          requiredPermission: "manage_roles_permissions",
+          requiredPermission: "view_roles",
         },
         {
           title: "Categories",
           url: "/admin/categories",
-          requiredPermission: "manage_categories",
+          requiredPermission: "view_categories",
         },
         {
           title: "Positions & Grades",
           url: "/admin/positions-grades",
-          requiredPermission: "manage_positions_grades",
+          requiredPermission: "view_positions",
         },
       ],
     },

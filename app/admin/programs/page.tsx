@@ -321,9 +321,6 @@ export default function ProgramsPage() {
     // check if the participents are in editparticipantIds
     const isEditing = editParticipantIds.length > 0
 
-
-
-
     try {
       if (isEditing) {
         // Update existing participations
@@ -373,11 +370,11 @@ export default function ProgramsPage() {
       setSelectedStudents([])
       setStudentSearchTerm([])
       setSelectedTeam(user?.teamId?._id || null) // Reset to user's team
-    } catch (error) {
-      console.error("Error updating participants:", error)
+    } catch (error: any) {
+      console.error("Error updating participants:", error.response.data.message || error)
       toast({
         title: "Error",
-        description: "Failed to update participants",
+        description: error.response.data.message || "Failed to update participants",
         variant: "destructive",
       })
     }
