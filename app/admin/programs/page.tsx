@@ -98,6 +98,9 @@ export default function ProgramsPage() {
   const [selectedParticipationForChecklist, setSelectedParticipationForChecklist] = useState<any>(null)
   const [checklistData, setChecklistData] = useState<any>({})
 
+  const { hasPermission } = useAuth()
+
+
   useEffect(() => {
     fetchPrograms()
     fetchStudents()
@@ -493,24 +496,30 @@ export default function ProgramsPage() {
           <p className="text-muted-foreground">Manage competition programs and schedules</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/programs/schedule">
-            <Button variant="outline">
-              <Calendar className="mr-2 h-4 w-4" />
-              Schedule View
-            </Button>
-          </Link>
-          <Link href="/admin/programs/results">
-            <Button variant="outline">
-              <Trophy className="mr-2 h-4 w-4" />
-              Results
-            </Button>
-          </Link>
-          <Link href="/admin/programs/add">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Program
-            </Button>
-          </Link>
+          {hasPermission("view_schedule") && (
+            <Link href="/admin/programs/schedule">
+              <Button variant="outline">
+                <Calendar className="mr-2 h-4 w-4" />
+                Schedule View
+              </Button>
+            </Link>
+          )}
+          {hasPermission("view_program_results") && (
+            <Link href="/admin/programs/results">
+              <Button variant="outline">
+                <Trophy className="mr-2 h-4 w-4" />
+                Results
+              </Button>
+            </Link>
+          )}
+          {hasPermission("add_program") && (
+            <Link href="/admin/programs/add">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Program
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -657,34 +666,44 @@ export default function ProgramsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditProgram(program)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Program
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewParticipants(program)}>
-                            <Users className="mr-2 h-4 w-4" />
-                            View Participants
-                          </DropdownMenuItem>
+                          {hasPermission("view_programs") && (
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                          )}
+                          {hasPermission("edit_programs") && (
+                            <DropdownMenuItem onClick={() => handleEditProgram(program)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Program
+                            </DropdownMenuItem>
+                          )}
+                          {hasPermission("view_participations") && (
+                            <DropdownMenuItem onClick={() => handleViewParticipants(program)}>
+                              <Users className="mr-2 h-4 w-4" />
+                              View Participants
+                            </DropdownMenuItem>
+                          )}
                           {/* Add this new menu item */}
-                          <DropdownMenuItem onClick={() => handleDownloadJudgeFormPDF(program)}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Download Judge Form
-                          </DropdownMenuItem>
+                          {hasPermission("download_judge_form") && (
+                            <DropdownMenuItem onClick={() => handleDownloadJudgeFormPDF(program)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Download Judge Form
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => {
-                              setProgramToDelete(program)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Program
-                          </DropdownMenuItem>
+                          {hasPermission("delete_programs") && (
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                setProgramToDelete(program)
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Program
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

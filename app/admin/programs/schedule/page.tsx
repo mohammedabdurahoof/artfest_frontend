@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/components/auth-provider"
 
 
 export default function ProgramSchedulePage() {
@@ -43,6 +44,9 @@ export default function ProgramSchedulePage() {
   const [isRescheduling, setIsRescheduling] = useState(false) // Add this new state
   // Add this state for confirmation
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false)
+
+  const { hasPermission } = useAuth()
+
 
   useEffect(() => {
     fetchPrograms()
@@ -367,7 +371,7 @@ export default function ProgramSchedulePage() {
                             <p className="text-sm text-muted-foreground mt-1">Judge: {program.judge}</p>
                           )} */}
                         </div>
-                        {program.status === "Draft" && (
+                        {program.status === "Draft" && hasPermission("add_schedule") && (
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -378,7 +382,7 @@ export default function ProgramSchedulePage() {
                             </Button>
                           </div>
                         )}
-                        {program.status === "Scheduled" && (
+                        {program.status === "Scheduled" && hasPermission("edit_schedule") && (
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -442,7 +446,7 @@ export default function ProgramSchedulePage() {
               {isRescheduling ? "Reschedule Program" : "Schedule Program"}
             </DialogTitle>
             <DialogDescription>
-              {isRescheduling 
+              {isRescheduling
                 ? `Update the schedule for "${selectedProgram?.name}"`
                 : `Set the date, time, and venue for "${selectedProgram?.name}"`
               }
@@ -511,14 +515,14 @@ export default function ProgramSchedulePage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* Show current schedule info when rescheduling */}
             {isRescheduling && (
               <div className="grid gap-2">
                 <Label>Current Schedule</Label>
                 <div className="text-sm text-muted-foreground space-y-1 p-3 bg-muted rounded-md">
                   <p><strong>Date:</strong> {selectedProgram?.date ? formatDate(selectedProgram.date) : "Not set"}</p>
-                  <p><strong>Time:</strong> {selectedProgram?.startingTime && selectedProgram?.endingTime 
+                  <p><strong>Time:</strong> {selectedProgram?.startingTime && selectedProgram?.endingTime
                     ? `${formatTime(selectedProgram.startingTime)} - ${formatTime(selectedProgram.endingTime)}`
                     : "Not set"
                   }</p>
@@ -526,7 +530,7 @@ export default function ProgramSchedulePage() {
                 </div>
               </div>
             )}
-            
+
             <div className="grid gap-2">
               <Label>Program Details</Label>
               <div className="text-sm text-muted-foreground space-y-1">
@@ -553,10 +557,10 @@ export default function ProgramSchedulePage() {
               disabled={!scheduleFormData.date || !scheduleFormData.startingTime || !scheduleFormData.endingTime || !scheduleFormData.venue}
               variant={showRescheduleConfirm ? "destructive" : "default"}
             >
-              {showRescheduleConfirm 
-                ? "Confirm Reschedule" 
-                : isRescheduling 
-                  ? "Reschedule Program" 
+              {showRescheduleConfirm
+                ? "Confirm Reschedule"
+                : isRescheduling
+                  ? "Reschedule Program"
                   : "Schedule Program"
               }
             </Button>

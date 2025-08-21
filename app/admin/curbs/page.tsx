@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { Plus, Edit, Trash2, MoreHorizontal, Users, Calendar, MapPin, Clock, Users2, Folder, Folders } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 // Types
 interface Program {
@@ -60,6 +61,9 @@ export default function CurbPage() {
 
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedPrograms, setSelectedPrograms] = useState<string[]>([])
+
+    const { hasPermission } = useAuth()
+
 
     // Fetch curbs
     const fetchCurbs = async () => {
@@ -318,14 +322,16 @@ export default function CurbPage() {
                         Manage curbs and assign programs to organize your art fest events.
                     </p>
                 </div>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={resetFormData}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Curb
-                        </Button>
-                    </DialogTrigger>
-                </Dialog>
+                {hasPermission("add_curbs") && (
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={resetFormData}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Curb
+                            </Button>
+                        </DialogTrigger>
+                    </Dialog>
+                )}
             </div>
 
             {/* Curbs Grid */}
@@ -335,10 +341,12 @@ export default function CurbPage() {
                         <Users className="h-12 w-12 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">No curbs found</h3>
                         <p className="text-muted-foreground mb-4">Create your first curb to get started organizing programs.</p>
-                        <Button onClick={() => setIsCreateDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Curb
-                        </Button>
+                        {hasPermission("add_curbs") && (
+                            <Button onClick={() => setIsCreateDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Curb
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     curbs.map((curb) => (
@@ -351,7 +359,7 @@ export default function CurbPage() {
                                             <div className="flex items-center gap-4 text-sm">
                                                 <span className="flex items-center gap-1">
                                                     <Users className="h-3 w-3" />
-                                                    {curb.programs.length}  programs
+                                                    {curb.programs.length} programs
                                                 </span>
 
                                                 <span className="flex items-center gap-1">
@@ -382,25 +390,26 @@ export default function CurbPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => handleEditCurb(curb)}>
+                                            {hasPermission("edit_curbs") && <> <DropdownMenuItem onClick={() => handleEditCurb(curb)}>
                                                 <Edit className="mr-2 h-4 w-4" />
                                                 Edit Curb
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleManagePrograms(curb)}>
-                                                <Users className="mr-2 h-4 w-4" />
-                                                Manage Programs
-                                            </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleManagePrograms(curb)}>
+                                                    <Users className="mr-2 h-4 w-4" />
+                                                    Manage Programs
+                                                </DropdownMenuItem></>}
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                className="text-red-600"
-                                                onClick={() => {
-                                                    setCurbToDelete(curb)
-                                                    setIsDeleteDialogOpen(true)
-                                                }}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Curb
-                                            </DropdownMenuItem>
+                                            {hasPermission("delete_curbs") && (
+                                                <DropdownMenuItem
+                                                    className="text-red-600"
+                                                    onClick={() => {
+                                                        setCurbToDelete(curb)
+                                                        setIsDeleteDialogOpen(true)
+                                                    }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete Curb
+                                                </DropdownMenuItem>)}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -426,14 +435,16 @@ export default function CurbPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">Assigned Programs</h4>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleManagePrograms(curb)}
-                                        >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Add
-                                        </Button>
+                                        {hasPermission("edit_curbs") && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleManagePrograms(curb)}
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add
+                                            </Button>
+                                        )}
                                     </div>
 
                                     {curb.programs.length === 0 ? (
@@ -460,7 +471,7 @@ export default function CurbPage() {
                                                         </div>
                                                         <h5 className="font-medium text-sm truncate">{program.name}</h5>
                                                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                                                           
+
                                                             <span className="flex items-center gap-1">
                                                                 <Clock className="h-3 w-3" />
                                                                 {program.duration}min
@@ -470,7 +481,7 @@ export default function CurbPage() {
                                                                 {program.noOfParticipation}×{program.candidatesPerParticipation}
                                                             </span>
                                                         </div>
-                                                        
+
                                                     </div>
                                                     <Button
                                                         variant="ghost"
@@ -574,7 +585,9 @@ export default function CurbPage() {
                         <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleUpdateCurb}>Update Curb</Button>
+                        {hasPermission("update_curbs") && (
+                            <Button onClick={handleUpdateCurb}>Update Curb</Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast"
 import { Plus, Search, Edit, Trash2, Users, Trophy, Target } from "lucide-react"
 import axiosInstance from "@/lib/axios"
 import type { Team, User, TeamFormData } from "@/types"
+import { useAuth } from "@/components/auth-provider"
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -31,6 +32,8 @@ export default function TeamsPage() {
     asstLeaders: [],
     userId: "",
   })
+
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     fetchTeams()
@@ -170,12 +173,12 @@ export default function TeamsPage() {
           <p className="text-muted-foreground">Manage teams and their members</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
+          {hasPermission("add_team") && <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="mr-2 h-4 w-4" />
               Add Team
             </Button>
-          </DialogTrigger>
+          </DialogTrigger>}
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Team</DialogTitle>
@@ -359,12 +362,16 @@ export default function TeamsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(team)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(team._id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {hasPermission("edit_team") && (
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(team)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {hasPermission("delete_team") && (
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(team._id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

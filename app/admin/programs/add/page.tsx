@@ -18,9 +18,10 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Student, Team } from "@/types"
 import { stat } from "fs"
+import { useAuth } from "@/components/auth-provider"
 
 
-const categories = ["Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya"]
+const categories = ["Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya", "Kulliyya"]
 const venues = ["Main Hall", "Auditorium", "Conference Room", "Outdoor Stage", "Classroom A", "Classroom B"]
 
 export default function AddProgramPage() {
@@ -44,6 +45,8 @@ export default function AddProgramPage() {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const { hasPermission } = useAuth()
 
 
   const validateForm = () => {
@@ -251,62 +254,63 @@ export default function AddProgramPage() {
 
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="venue">Venue</Label>
-                  <Select
-                    value={formData.venue}
-                    onValueChange={(value) => setFormData({ ...formData, venue: value })}
-                  >
-                    <SelectTrigger className={errors.venue ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select venue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {venues.map((venue) => (  
-                        <SelectItem key={venue} value={venue}>
-                          {venue}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.venue && <p className="text-sm text-red-500">{errors.venue}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className={errors.date ? "border-red-500" : ""}
-                  />
-                  {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
-                </div>
+              {hasPermission("add_schedule") || hasPermission("edit_schedule") ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="venue">Venue</Label>
+                    <Select
+                      value={formData.venue}
+                      onValueChange={(value) => setFormData({ ...formData, venue: value })}
+                    >
+                      <SelectTrigger className={errors.venue ? "border-red-500" : ""}>
+                        <SelectValue placeholder="Select venue" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {venues.map((venue) => (
+                          <SelectItem key={venue} value={venue}>
+                            {venue}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.venue && <p className="text-sm text-red-500">{errors.venue}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className={errors.date ? "border-red-500" : ""}
+                    />
+                    {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="startingTime">Start Time</Label>
-                  <Input
-                    id="startingTime"
-                    type="time"
-                    value={formData.startingTime}
-                    onChange={(e) => setFormData({ ...formData, startingTime: e.target.value })}
-                    className={errors.startingTime ? "border-red-500" : ""}
-                  />
-                  {errors.startingTime && <p className="text-sm text-red-500">{errors.startingTime}</p>}
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="startingTime">Start Time</Label>
+                    <Input
+                      id="startingTime"
+                      type="time"
+                      value={formData.startingTime}
+                      onChange={(e) => setFormData({ ...formData, startingTime: e.target.value })}
+                      className={errors.startingTime ? "border-red-500" : ""}
+                    />
+                    {errors.startingTime && <p className="text-sm text-red-500">{errors.startingTime}</p>}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="endingTime">End Time</Label>
-                  <Input
-                    id="endingTime"
-                    type="time"
-                    value={formData.endingTime}
-                    onChange={(e) => setFormData({ ...formData, endingTime: e.target.value })}
-                    className={errors.endingTime ? "border-red-500" : ""}
-                  />
-                  {errors.endingTime && <p className="text-sm text-red-500">{errors.endingTime}</p>}
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endingTime">End Time</Label>
+                    <Input
+                      id="endingTime"
+                      type="time"
+                      value={formData.endingTime}
+                      onChange={(e) => setFormData({ ...formData, endingTime: e.target.value })}
+                      className={errors.endingTime ? "border-red-500" : ""}
+                    />
+                    {errors.endingTime && <p className="text-sm text-red-500">{errors.endingTime}</p>}
+                  </div>
+                </div>) : ""}
 
               <div className="flex gap-6">
                 <div className="flex items-center space-x-2">

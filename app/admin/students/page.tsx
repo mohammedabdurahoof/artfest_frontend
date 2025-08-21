@@ -29,6 +29,7 @@ import { Search, Plus, MoreHorizontal, Edit, Trash2, Upload, Users, Trophy, Targ
 import Link from "next/link"
 import axiosInstance from "@/lib/axios"
 import type { Student, Team, Category, StudentFormData } from "@/types"
+import { useAuth } from "@/components/auth-provider"
 
 const categories: Category[] = ["Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya"]
 
@@ -47,6 +48,8 @@ export default function StudentsPage() {
     category: "Bidaya",
     team: "",
   })
+
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     fetchStudents()
@@ -184,18 +187,22 @@ export default function StudentsPage() {
           <p className="text-muted-foreground">Manage student registrations and information</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/admin/students/import">
-              <Upload className="mr-2 h-4 w-4" />
-              Import Students
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/students/add">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Student
-            </Link>
-          </Button>
+          {hasPermission("import_students") && (
+            <Button variant="outline" asChild>
+              <Link href="/admin/students/import">
+                <Upload className="mr-2 h-4 w-4" />
+                Import Students
+              </Link>
+            </Button>
+          )}
+          {hasPermission("add_student") && (
+            <Button asChild>
+              <Link href="/admin/students/add">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Student
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -284,26 +291,34 @@ export default function StudentsPage() {
                       <span className="font-medium">{student.totalPoint}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEdit(student)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Student
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(student)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Student
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {hasPermission("edit_students") || hasPermission("delete_students") ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            {hasPermission("edit_students") && (
+                              <DropdownMenuItem onClick={() => handleEdit(student)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Student
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {hasPermission("delete_students") && (
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(student)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Student
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        ""
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
