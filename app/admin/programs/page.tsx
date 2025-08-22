@@ -48,6 +48,7 @@ import { Program, Student, Team } from "@/types"
 import { formatTimeTo12Hour } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { categories, programName, venues } from "@/lib/const"
+import { se } from "date-fns/locale"
 
 
 export default function ProgramsPage() {
@@ -66,7 +67,6 @@ export default function ProgramsPage() {
   const [isParticipantsDialogOpen, setIsParticipantsDialogOpen] = useState(false)
   const [programToDelete, setProgramToDelete] = useState<Program | null>(null)
   const [selectedProgramForParticipants, setSelectedProgramForParticipants] = useState<Program | null>(null)
-  const [availableStudents, setAvailableStudents] = useState<Student[]>([])
   const [selectedStudents, setSelectedStudents] = useState<string[][]>([]) // Changed to nested array
   const [studentSearchTerm, setStudentSearchTerm] = useState<string[]>([]) // Changed to array
   const [selectedTeam, setSelectedTeam] = useState<string | null>(user?.teamId?._id || null) // Add team filter state
@@ -206,7 +206,6 @@ export default function ProgramsPage() {
     try {
       const response = await axios.get("/students")
       setStudents(response.data.data || [])
-      setAvailableStudents(response.data.data || [])
     } catch (error) {
       console.error("Error fetching students:", error)
       toast({
@@ -257,11 +256,12 @@ export default function ProgramsPage() {
     setSelectedStudents(Array.from({ length: noOfParticipation }, () => []))
   }
 
-  const initializeSelectedStudents = async (teamId: string) => {
-    if (!teamId || !selectedProgramForParticipants) return
+  const initializeSelectedStudents = async (teamId: string | null, programId: string | null = null) => {
+    if (!teamId || !programId) return
+
 
     try {
-      const response = await axios.get(`/participations/program/${selectedProgramForParticipants?._id}/team/${teamId}`)
+      const response = await axios.get(`/participations/program/${programId}/team/${teamId}`)
 
       setSelectedStudents(
         response.data.data.map((participation: any) =>
@@ -270,7 +270,6 @@ export default function ProgramsPage() {
       )
       setEditParticipantIds(response.data.data.map((participation: any) => participation._id))
       setStudentSearchTerm(Array.from({ length: selectedProgramForParticipants?.noOfParticipation || 1 }, () => ""))
-      setAvailableStudents(students.filter(student => student.category === selectedProgramForParticipants?.category))
     } catch (error) {
       console.error("Error initializing participants:", error)
       toast({
@@ -281,14 +280,13 @@ export default function ProgramsPage() {
     }
   }
 
-  const handleManageParticipants = (program: Program) => {
+  const handleManageParticipants = async (program: Program) => {
     setSelectedProgramForParticipants(program)
-    const filtered = students.filter((student) => student.category === program.category)
 
     // Initialize nested arrays based on noOfParticipation
     const noOfParticipation = program.noOfParticipation || 0
 
-    selectedTeam && initializeSelectedStudents(selectedTeam)
+    selectedTeam && await initializeSelectedStudents(selectedTeam, program._id)
 
     setStudentSearchTerm(Array.from({ length: noOfParticipation }, () => ""))
     setIsParticipantsDialogOpen(true)
@@ -413,22 +411,19 @@ export default function ProgramsPage() {
   }
 
   const getFilteredStudentsForParticipation = (participationIndex: number) => {
-    let filtered = availableStudents.filter((student) => {
-      // Filter by category first
+    let filtered = students.filter((student) => {
+      console.log(student);
+      console.log(selectedProgramForParticipants);
+      if (!selectedProgramForParticipants) return false
+      if (selectedProgramForParticipants?.category === "Kulliyya") {
+        // For Kulliyya programs, show all students (no category filter)
+        return student.team?._id === selectedTeam
+      }
+      // Filter by category for other programs
       if (student.category !== selectedProgramForParticipants?.category) {
         return false
       }
-
-      // Filter by team if selected
-      if (selectedTeam !== "all") {
-        if (selectedTeam === "no-team") {
-          return !student.team
-        } else {
-          return student.team?._id === selectedTeam
-        }
-      }
-
-      return true
+      return student.team?._id === selectedTeam
     })
 
     // Filter by search term for this specific participation
@@ -899,9 +894,9 @@ export default function ProgramsPage() {
             </div>
 
             {/* Team Filter */}
-            {!user?.teamId?._id && <div className="grid gap-2">
+            {!user?.teamId && <div className="grid gap-2">
               <Label>Team</Label>
-              <Select value={selectedTeam?.toString()} onValueChange={(value) => { setSelectedTeam(value); initializeSelectedStudents(value); }}>
+              <Select value={selectedTeam?.toString()} onValueChange={(value) => { setSelectedTeam(value); initializeSelectedStudents(value, selectedProgramForParticipants?._id); }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
@@ -1017,7 +1012,7 @@ export default function ProgramsPage() {
                             <div className="max-h-24 overflow-y-auto border rounded-md p-2 bg-muted/20">
                               <div className="flex flex-wrap gap-2">
                                 {selectedForThisParticipation.map((studentId) => {
-                                  const student = availableStudents.find((s) => s._id === studentId)
+                                  const student = students.find((s) => s._id === studentId)
                                   if (!student) return null
                                   return (
                                     <div
@@ -1088,7 +1083,7 @@ export default function ProgramsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {programParticipations.map((participation, index) => (
+                {(user?.teamId ? programParticipations.filter(p => p.team._id === user.teamId?._id) : programParticipations).map((participation, index) => (
                   <Card key={participation._id} className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-medium">Participation {index + 1}</h3>

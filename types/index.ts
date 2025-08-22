@@ -1,5 +1,5 @@
 // Base types
-export type Category = "Bidaya" | "Ula" | "Thaniyya" | "Thanawiyya" | "Aliya"
+export type Category = "Bidaya" | "Ula" | "Thaniyya" | "Thanawiyya" | "Aliya" | "Kulliyya"
 export type Status = "active" | "inactive" | "pending" | "completed" | "cancelled" | "Scheduled" | "Draft"
 export type PositionCategory = "first" | "second" | "third"
 export type GradeCategory = "A" | "B" | "C"

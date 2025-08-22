@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,14 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Save, Users, Trophy } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import axios from "@/lib/axios"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Student, Team } from "@/types"
-import { stat } from "fs"
 import { useAuth } from "@/components/auth-provider"
 
 
@@ -38,10 +35,12 @@ export default function AddProgramPage() {
     isGroup: false,
     noOfParticipation: 1,
     candidatesPerParticipation: 1,
+    type: "",
     venue: "",
     date: "",
     startingTime: "",
     endingTime: "",
+    isRegistrable: true,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -205,7 +204,7 @@ export default function AddProgramPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="duration">Duration (minutes) *</Label>
                   <Input
@@ -249,6 +248,26 @@ export default function AddProgramPage() {
                     className={errors.candidatesPerParticipation ? "border-red-500" : ""}
                   />
                   {errors.candidatesPerParticipation && <p className="text-sm text-red-500">{errors.candidatesPerParticipation}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Type *</Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                  >
+                    <SelectTrigger className={errors.type ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Sports", "Arts"].map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.type && <p className="text-sm text-red-500">{errors.type}</p>}
                 </div>
 
 
@@ -335,6 +354,20 @@ export default function AddProgramPage() {
                   />
                   <Label htmlFor="isGroup">Group Program</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isRegistrable"
+                    checked={formData.isRegistrable}
+                    onCheckedChange={(checked) => {
+                      const newIsRegistrable = checked as boolean
+                      setFormData({
+                        ...formData,
+                        isRegistrable: newIsRegistrable,
+                      })
+                    }}
+                  />
+                  <Label htmlFor="isRegistrable">Registrable Program</Label>
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
@@ -361,8 +394,6 @@ export default function AddProgramPage() {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   )
 }
