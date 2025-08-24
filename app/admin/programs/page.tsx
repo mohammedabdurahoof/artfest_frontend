@@ -333,6 +333,8 @@ export default function ProgramsPage() {
             candidateId: participation,
             programId: selectedProgramForParticipants._id,
             team: selectedTeam,
+            candidateModel: selectedProgramForParticipants.isRegistrable ? "Student" : "Team",
+
           })
         }
 
@@ -347,6 +349,7 @@ export default function ProgramsPage() {
               candidateId: participation,
               programId: selectedProgramForParticipants._id,
               team: selectedTeam,
+              candidateModel: selectedProgramForParticipants.isRegistrable ? "Student" : "Team",
             })
           }
         }
@@ -359,6 +362,8 @@ export default function ProgramsPage() {
             candidateId: participation,
             programId: selectedProgramForParticipants._id,
             team: selectedTeam,
+            candidateModel: selectedProgramForParticipants.isRegistrable ? "Student" : "Team",
+
           })
         }
       }
@@ -1746,14 +1751,14 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
             <thead>
               <tr style="background-color: #f9f9f9;">
                 <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 30px;">S.No</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 60px;">Chest No</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: left; min-width: 120px;">Candidate Name</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Point 1</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Point 2</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Point 3</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Point 4</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Point 5</th>
-                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 50px;">Total</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">Chest No</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">Code Letter</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Point 1</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Point 2</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Point 3</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Point 4</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Point 5</th>
+                <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 70px;">Total</th>
                 <th style="border: 1px solid #333; padding: 8px; text-align: center; min-width: 80px;">Remarks</th>
               </tr>
             </thead>
@@ -1763,29 +1768,29 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
                 <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f9f9f9'};">
                   <td style="border: 1px solid #333; padding: 8px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center;">${participation.candidateId[0].chestNo}</td>
-                  <td style="border: 1px solid #333; padding: 8px;">${participation.candidateId[0].name}</td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
                 </tr>
               `).join('') || '<tr><td colspan="11" style="border: 1px solid #333; padding: 8px; text-align: center;">No participants</td></tr>'}
               
-              ${Array.from({ length: Math.max(0, 15 - (participations?.length || 0)) }, (_, index) => `
+              ${Array.from({ length: Math.max(0, 12 - (participations?.length || 0)) }, (_, index) => `
                 <tr style="background-color: ${((participations?.length || 0) + index) % 2 === 0 ? '#fff' : '#f9f9f9'};">
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; color: #999;">${(participations?.length || 0) + index + 1}</td>
                   <td style="border: 1px solid #333; padding: 8px; color: #999;"></td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; color: #999;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 25px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
                 </tr>
               `).join('')}
 
@@ -1818,8 +1823,8 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
             <div style=" padding:5px;">Please inform students the criteria considered in judging</div>
           </div>
         </div>
-      
-      <div style="text-align: center; margin-top: 30px; font-size: 10px; color: #666;">
+
+      <div style="text-align: center; margin-top: 15px; margin-bottom: 0px; font-size: 10px; color: #666;">
         Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
       </div>
     </div>
