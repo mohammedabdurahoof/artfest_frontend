@@ -412,19 +412,42 @@ export default function ProgramsPage() {
 
   const getFilteredStudentsForParticipation = (participationIndex: number) => {
     let filtered = students.filter((student) => {
-      console.log(student);
-      console.log(selectedProgramForParticipants);
       if (!selectedProgramForParticipants) return false
       if (selectedProgramForParticipants?.category === "Kulliyya") {
         // For Kulliyya programs, show all students (no category filter)
-        return student.team?._id === selectedTeam
+        if (selectedProgramForParticipants?.isRegistrable) {
+          return student.team?._id === selectedTeam
+        } else {
+          return false
+        }
       }
+
       // Filter by category for other programs
       if (student.category !== selectedProgramForParticipants?.category) {
         return false
       }
       return student.team?._id === selectedTeam
     })
+
+    if (selectedProgramForParticipants?.category === "Kulliyya" && !selectedProgramForParticipants?.isRegistrable) {
+      const team = teams.find(team => team._id === selectedTeam);
+      if (team) {
+        filtered = [
+          {
+            _id: team._id,
+            name: team.name,
+            chestNo: "0",
+            class: "0",
+            team: team,
+            totalPoint: 0,
+            category: "Kulliyya",
+            createdAt: "",
+            updatedAt: ""
+
+          }
+        ]
+      }
+    }
 
     // Filter by search term for this specific participation
     const searchTerm = studentSearchTerm[participationIndex] || ""
@@ -1012,8 +1035,25 @@ export default function ProgramsPage() {
                             <div className="max-h-24 overflow-y-auto border rounded-md p-2 bg-muted/20">
                               <div className="flex flex-wrap gap-2">
                                 {selectedForThisParticipation.map((studentId) => {
-                                  const student = students.find((s) => s._id === studentId)
-                                  if (!student) return null
+                                  const team = teams.find(t => t._id === selectedTeam);
+                                  let student = students.find((s) => s._id === studentId)
+
+                                  if (!student && team) {
+                                    student = {
+                                      _id: team._id,
+                                      name: team.name,
+                                      chestNo: "0",
+                                      class: "0",
+                                      team: team,
+                                      totalPoint: 0,
+                                      category: "Kulliyya",
+                                      createdAt: "",
+                                      updatedAt: ""
+                                    }
+                                  }
+
+                                  if (!studentId || !student) return null
+
                                   return (
                                     <div
                                       key={studentId}
