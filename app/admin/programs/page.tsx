@@ -433,6 +433,22 @@ export default function ProgramsPage() {
 
     if (selectedProgramForParticipants?.category === "Kulliyya" && !selectedProgramForParticipants?.isRegistrable) {
       const team = teams.find(team => team._id === selectedTeam);
+      if (!team) {
+        filtered = [
+          {
+            _id: user?.teamId?._id || "",
+            name: user?.teamId?.name || "",
+            chestNo: "0",
+            class: "0",
+            team: user?.teamId || { _id: "", name: "" },
+            totalPoint: 0,
+            category: "Kulliyya",
+            createdAt: "",
+            updatedAt: ""
+
+          } as any
+        ]
+      }
       if (team) {
         filtered = [
           {
@@ -1070,6 +1086,20 @@ export default function ProgramsPage() {
                                     }
                                   }
 
+                                  if (!student && !team) {
+                                    student = {
+                                      _id: user?.teamId?._id || "",
+                                      name: user?.teamId?.name || "",
+                                      chestNo: "0",
+                                      class: "0",
+                                      team: user?.teamId || { _id: "", name: "" },
+                                      totalPoint: 0,
+                                      category: "Kulliyya",
+                                      createdAt: "",
+                                      updatedAt: ""
+                                    } as any
+                                  }
+
                                   if (!studentId || !student) return null
 
                                   return (
@@ -1358,7 +1388,7 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
   return `
     <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; max-width: 794px; margin: 0 auto;">
       <!-- Header -->
-      <div style="text-align: center; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 20px;">
+      <div style="text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 20px;">
         <h1 style="font-size: 24px; margin: 0 0 10px 0; font-weight: bold;">${programName || "Art Fest"}</h1>
         <h2 style="font-size: 18px; margin: 0 0 10px 0; font-weight: bold;">${program.name.toUpperCase()}</h2>
         <b style="margin: 5px 0; font-size: 14px;">Program Code: ${program.programCode} | Category: ${program.category}</b>
@@ -1370,7 +1400,7 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
       
       <h2 style="text-align: center; margin-bottom: 20px; font-size: 18px; font-weight: bold;">JUDGMENT FORM</h2>
       <div style="margin-bottom: 40px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
             <thead>
               <tr style="background-color: #f9f9f9;">
                 <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 30px;">S.No</th>
@@ -1390,7 +1420,7 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
         
                 <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f9f9f9'};">
                   <td style="border: 1px solid #333; padding: 8px; text-align: center;">${index + 1}</td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center;">${participation.candidateId[0].chestNo}</td>
+                  <td style="border: 1px solid #333; padding: 8px;  font-size: 20px; font-weight: bold; text-align: center;">${participation.candidateId[0].chestNo}</td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
@@ -1447,7 +1477,7 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
           </div>
         </div>
 
-      <div style="text-align: center; margin-top: 15px; margin-bottom: 0px; font-size: 10px; color: #666;">
+      <div style="text-align: center; margin-top: 10px; margin-bottom: 0px; font-size: 10px; color: #666;">
         Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
       </div>
     </div>

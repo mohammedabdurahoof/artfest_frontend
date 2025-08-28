@@ -177,6 +177,8 @@ export interface Grade {
   isStarred: boolean
   category: GradeCategory
   points: number
+  from: number
+  to: number
   color: string
   isActive: boolean
   createdAt: string

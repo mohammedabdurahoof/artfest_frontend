@@ -57,6 +57,8 @@ export default function PositionsGradesPage() {
     isStarred: false,
     category: "A",
     points: 0,
+    from: 0,
+    to: 0,
     color: "green",
     isActive: true,
   })
@@ -159,7 +161,7 @@ export default function PositionsGradesPage() {
       const response = await api.post("/grades", gradeFormData)
       setGrades([...grades, response.data.data])
       setIsAddGradeDialogOpen(false)
-      setGradeFormData({ isStarred: false, category: "A", points: 0, color: "green", isActive: true })
+      setGradeFormData({ isStarred: false, category: "A", points: 0, from: 0, to: 0, color: "green", isActive: true })
       toast({
         title: "Success",
         description: "Grade added successfully",
@@ -182,7 +184,7 @@ export default function PositionsGradesPage() {
       setGrades(grades.map((grade) => (grade._id === selectedGrade._id ? response.data.data : grade)))
       setIsEditGradeDialogOpen(false)
       setSelectedGrade(null)
-      setGradeFormData({ isStarred: false, category: "A", points: 0, color: "green", isActive: true })
+      setGradeFormData({ isStarred: false, category: "A", points: 0, from: 0, to: 0, color: "green", isActive: true })
       toast({
         title: "Success",
         description: "Grade updated successfully",
@@ -231,6 +233,8 @@ export default function PositionsGradesPage() {
       isStarred: grade.isStarred,
       category: grade.category,
       points: grade.points,
+      from: grade.from,
+      to: grade.to,
       color: grade.color,
       isActive: grade.isActive,
     })
@@ -549,6 +553,30 @@ export default function PositionsGradesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
+                      <Label htmlFor="from">From</Label>
+                      <Input
+                        id="from"
+                        type="number"
+                        value={gradeFormData.from}
+                        onChange={(e) =>
+                          setGradeFormData({ ...gradeFormData, from: Number.parseInt(e.target.value) || 0 })
+                        }
+                        placeholder="Enter From Percentage"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="to">To</Label>
+                      <Input
+                        id="to"
+                        type="number"
+                        value={gradeFormData.to}
+                        onChange={(e) =>
+                          setGradeFormData({ ...gradeFormData, to: Number.parseInt(e.target.value) || 0 })
+                        }
+                        placeholder="Enter To Percentage"
+                      />
+                    </div>
+                    <div className="grid gap-2">
                       <Label htmlFor="grade-color">Color</Label>
                       <Select
                         value={gradeFormData.color}
@@ -609,6 +637,8 @@ export default function PositionsGradesPage() {
                   <TableRow>
                     <TableHead>Grade</TableHead>
                     <TableHead>Score Range</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -629,6 +659,16 @@ export default function PositionsGradesPage() {
                       <TableCell>
                         <Badge variant="outline">
                           {grade.points}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {grade.from}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {grade.to}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -824,6 +864,30 @@ export default function PositionsGradesPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="from">From</Label>
+                <Input
+                  id="from"
+                  type="number"
+                  value={gradeFormData.from}
+                  onChange={(e) =>
+                    setGradeFormData({ ...gradeFormData, from: Number.parseInt(e.target.value) || 0 })
+                  }
+                  placeholder="Enter From Percentage"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="to">To</Label>
+                <Input
+                  id="to"
+                  type="number"
+                  value={gradeFormData.to}
+                  onChange={(e) =>
+                    setGradeFormData({ ...gradeFormData, to: Number.parseInt(e.target.value) || 0 })
+                  }
+                  placeholder="Enter To Percentage"
+                />
+              </div>  
               <div className="grid gap-2">
                 <Label htmlFor="grade-color">Color</Label>
                 <Select
