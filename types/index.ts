@@ -1,9 +1,9 @@
 // Base types
 export type Category = "Bidaya" | "Ula" | "Thaniyya" | "Thanawiyya" | "Aliya" | "Kulliyya"
-export type Status = "active" | "inactive" | "pending" | "completed" | "cancelled" | "Scheduled" | "Draft"
+export type Status = "active" | "inactive" | "pending" | "completed" | "cancelled" | "Scheduled" | "Draft" | "Pending" | "Cancelled" | "Completed"
 export type PositionCategory = "first" | "second" | "third"
 export type GradeCategory = "A" | "B" | "C"
-export type ResultStatus = "pending" | "processing" | "completed" | "published"
+export type ResultStatus = "pending" | "processing" | "completed" | "published" | "archived"
 
 // User and Authentication
 export interface Permission {

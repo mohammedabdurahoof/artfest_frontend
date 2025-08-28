@@ -170,16 +170,16 @@ const data = {
           url: "/admin/judgment",
           requiredPermission: "view_judgments",
         },
-        {
-          title: "Add Judgment",
-          url: "/admin/judgment/add",
-          requiredPermission: "add_judgments",
-        },
-        {
-          title: "Reports",
-          url: "/admin/judgment/reports",
-          requiredPermission: "view_judgment_reports",
-        },
+        // {
+        //   title: "Add Judgment",
+        //   url: "/admin/judgment/add",
+        //   requiredPermission: "add_judgments",
+        // },
+        // {
+        //   title: "Reports",
+        //   url: "/admin/judgment/reports",
+        //   requiredPermission: "view_judgment_reports",
+        // },
       ],
     },
   ] as NavItem[], // Cast to NavItem[]

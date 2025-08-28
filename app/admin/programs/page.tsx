@@ -80,6 +80,7 @@ export default function ProgramsPage() {
     category: "",
     isStage: true,
     isGroup: false,
+    isRegistrable: true,
     noOfParticipation: 1,
     candidatesPerParticipation: 1,
     venue: "",
@@ -92,11 +93,6 @@ export default function ProgramsPage() {
   const [isViewParticipantsDialogOpen, setIsViewParticipantsDialogOpen] = useState(false)
   const [viewingProgramParticipants, setViewingProgramParticipants] = useState<Program | null>(null)
   const [programParticipations, setProgramParticipations] = useState<any[]>([])
-
-  // Add these new state variables
-  const [isChecklistDialogOpen, setIsChecklistDialogOpen] = useState(false)
-  const [selectedParticipationForChecklist, setSelectedParticipationForChecklist] = useState<any>(null)
-  const [checklistData, setChecklistData] = useState<any>({})
 
   const { hasPermission } = useAuth()
 
@@ -146,8 +142,9 @@ export default function ProgramsPage() {
       description: "",
       duration: program.duration || 15,
       category: program.category || "",
-      isStage: program.isStage || true,
+      isStage: program.isStage || false,
       isGroup: program.isGroup || false,
+      isRegistrable: program.isRegistrable || false,
       noOfParticipation: program.noOfParticipation || 1,
       candidatesPerParticipation: program.candidatesPerParticipation || 1,
       venue: program.venue || "",
@@ -654,9 +651,11 @@ export default function ProgramsPage() {
                         {/* <span>
                           {program.participants?.length || 0}/{program.maxParticipants}
                         </span> */}
-                        <Button variant="outline" size="sm" onClick={() => handleManageParticipants(program)}>
-                          <UserPlus className="h-3 w-3" />
-                        </Button>
+                        {hasPermission("add_participation") && (
+                          <Button variant="outline" size="sm" onClick={() => handleManageParticipants(program)}>
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -892,6 +891,20 @@ export default function ProgramsPage() {
                   onCheckedChange={(checked) => setProgramFormData({ ...programFormData, isGroup: checked as boolean })}
                 />
                 <Label htmlFor="edit-isGroup">Group Program</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRegistrable"
+                  checked={programFormData.isRegistrable}
+                  onCheckedChange={(checked) => {
+                    const newIsRegistrable = checked as boolean
+                    setProgramFormData({
+                      ...programFormData,
+                      isRegistrable: newIsRegistrable,
+                    })
+                  }}
+                />
+                <Label htmlFor="isRegistrable">Registrable Program </Label>
               </div>
             </div>
           </div>
@@ -1141,19 +1154,6 @@ export default function ProgramsPage() {
                         <Badge variant="outline" className="text-xs">
                           {participation.candidateId?.length || 0} participants
                         </Badge>
-                        {/* Add Checklist Button */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedParticipationForChecklist(participation)
-                            setChecklistData({}) // Reset judgment data
-                            setIsChecklistDialogOpen(true)
-                          }}
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          Judge
-                        </Button>
                       </div>
                     </div>
 
@@ -1194,389 +1194,12 @@ export default function ProgramsPage() {
             <Button variant="outline" onClick={() => setIsViewParticipantsDialogOpen(false)}>
               Close
             </Button>
-            <Button onClick={() => {
+            {hasPermission("add_participation") && <Button onClick={() => {
               setIsViewParticipantsDialogOpen(false)
               handleManageParticipants(viewingProgramParticipants!)
             }}>
               Manage Participants
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Participation Judgment Form Dialog */}
-      <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">
-              JUDGMENT FORM - {viewingProgramParticipants?.name?.toUpperCase()}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              Program: {viewingProgramParticipants?.name} | Category: {viewingProgramParticipants?.category}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedParticipationForChecklist && (
-            <div className="space-y-6">
-              {/* Header Section */}
-              <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg">PROGRAM DETAILS</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div><strong>Program Code:</strong></div>
-                      <div>{viewingProgramParticipants?.programCode}</div>
-                      <div><strong>Duration:</strong></div>
-                      <div>{viewingProgramParticipants?.duration} minutes</div>
-                      <div><strong>Venue:</strong></div>
-                      <div>{viewingProgramParticipants?.venue}</div>
-                      <div><strong>Date:</strong></div>
-                      <div>{viewingProgramParticipants?.date && new Date(viewingProgramParticipants.date).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg">TEAM INFORMATION</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div><strong>Team Name:</strong></div>
-                      <div>{selectedParticipationForChecklist.team?.name || "N/A"}</div>
-                      <div><strong>Team Color:</strong></div>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded border"
-                          style={{ backgroundColor: selectedParticipationForChecklist.team?.color || '#gray' }}
-                        />
-                        {selectedParticipationForChecklist.team?.color || "N/A"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg">EVALUATION CRITERIA</h3>
-                    <div className="text-sm">
-                      <div><strong>Performance:</strong> 40 points</div>
-                      <div><strong>Presentation:</strong> 30 points</div>
-                      <div><strong>Creativity:</strong> 20 points</div>
-                      <div><strong>Time Management:</strong> 10 points</div>
-                      <div className="font-bold mt-2">Total: 100 points</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Judgment Form Table */}
-              <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
-                <div className="bg-gray-100 p-3 border-b-2 border-gray-300">
-                  <h3 className="font-bold text-center">JUDGMENT FORM</h3>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse judgment-table">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 p-2 text-left w-8">S.No</th>
-                        <th className="border border-gray-300 p-2 text-left">Candidate Name</th>
-                        <th className="border border-gray-300 p-2 text-left w-20">Chest No</th>
-                        <th className="border border-gray-300 p-2 text-left w-24">Class</th>
-                        <th className="border border-gray-300 p-2 text-center w-24">Performance<br />(40)</th>
-                        <th className="border border-gray-300 p-2 text-center w-24">Presentation<br />(30)</th>
-                        <th className="border border-gray-300 p-2 text-center w-24">Creativity<br />(20)</th>
-                        <th className="border border-gray-300 p-2 text-center w-24">Time Mgmt<br />(10)</th>
-                        <th className="border border-gray-300 p-2 text-center w-20">Total<br />(100)</th>
-                        <th className="border border-gray-300 p-2 text-center w-16">Grade</th>
-                        <th className="border border-gray-300 p-2 text-left w-32">Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedParticipationForChecklist.candidateId?.map((candidate: any, index: number) => {
-                        const candidateData = checklistData[candidate._id] || {}
-                        const performance = candidateData.performance || 0
-                        const presentation = candidateData.presentation || 0
-                        const creativity = candidateData.creativity || 0
-                        const timeManagement = candidateData.timeManagement || 0
-                        const total = performance + presentation + creativity + timeManagement
-
-                        // Calculate grade based on total
-                        const getGrade = (score: number) => {
-                          if (score >= 90) return 'A+'
-                          if (score >= 80) return 'A'
-                          if (score >= 70) return 'B+'
-                          if (score >= 60) return 'B'
-                          if (score >= 50) return 'C'
-                          return 'F'
-                        }
-
-                        return (
-                          <tr key={candidate._id} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 p-2 text-center font-medium">
-                              {index + 1}
-                            </td>
-                            <td className="border border-gray-300 p-2 font-medium">
-                              {candidate.name}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center font-mono">
-                              {candidate.chestNo}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {Array.isArray(candidate.class) ? candidate.class.join(", ") : candidate.class}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="40"
-                                value={candidateData.performance || ""}
-                                onChange={(e) =>
-                                  setChecklistData(prev => ({
-                                    ...prev,
-                                    [candidate._id]: {
-                                      ...prev[candidate._id],
-                                      performance: parseInt(e.target.value) || 0
-                                    }
-                                  }))
-                                }
-                                className="w-16 h-8 text-center text-xs"
-                              />
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="30"
-                                value={candidateData.presentation || ""}
-                                onChange={(e) =>
-                                  setChecklistData(prev => ({
-                                    ...prev,
-                                    [candidate._id]: {
-                                      ...prev[candidate._id],
-                                      presentation: parseInt(e.target.value) || 0
-                                    }
-                                  }))
-                                }
-                                className="w-16 h-8 text-center text-xs"
-                              />
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="20"
-                                value={candidateData.creativity || ""}
-                                onChange={(e) =>
-                                  setChecklistData(prev => ({
-                                    ...prev,
-                                    [candidate._id]: {
-                                      ...prev[candidate._id],
-                                      creativity: parseInt(e.target.value) || 0
-                                    }
-                                  }))
-                                }
-                                className="w-16 h-8 text-center text-xs"
-                              />
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="10"
-                                value={candidateData.timeManagement || ""}
-                                onChange={(e) =>
-                                  setChecklistData(prev => ({
-                                    ...prev,
-                                    [candidate._id]: {
-                                      ...prev[candidate._id],
-                                      timeManagement: parseInt(e.target.value) || 0
-                                    }
-                                  }))
-                                }
-                                className="w-16 h-8 text-center text-xs"
-                              />
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center font-bold">
-                              <div className={`w-16 h-8 flex items-center justify-center rounded ${total >= 80 ? 'bg-green-100 text-green-800' :
-                                total >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                  total >= 40 ? 'bg-orange-100 text-orange-800' :
-                                    'bg-red-100 text-red-800'
-                                }`}>
-                                {total}
-                              </div>
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center font-bold">
-                              <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${total >= 80 ? 'bg-green-200 text-green-900' :
-                                total >= 60 ? 'bg-yellow-200 text-yellow-900' :
-                                  total >= 40 ? 'bg-orange-200 text-orange-900' :
-                                    'bg-red-200 text-red-900'
-                                }`}>
-                                {getGrade(total)}
-                              </div>
-                            </td>
-                            <td className="border border-gray-300 p-2">
-                              <Input
-                                placeholder="Judge remarks..."
-                                value={candidateData.remarks || ""}
-                                onChange={(e) =>
-                                  setChecklistData(prev => ({
-                                    ...prev,
-                                    [candidate._id]: {
-                                      ...prev[candidate._id],
-                                      remarks: e.target.value
-                                    }
-                                  }))
-                                }
-                                className="border-0 p-1 h-8 text-xs"
-                              />
-                            </td>
-                          </tr>
-                        )
-                      })}
-
-                      {/* Add empty rows for additional space */}
-                      {Array.from({ length: Math.max(0, 5 - (selectedParticipationForChecklist.candidateId?.length || 0)) }).map((_, index) => (
-                        <tr key={`empty-${index}`}>
-                          <td className="border border-gray-300 p-2 text-center text-gray-400">
-                            {(selectedParticipationForChecklist.candidateId?.length || 0) + index + 1}
-                          </td>
-                          <td className="border border-gray-300 p-2 text-gray-400">---</td>
-                          <td className="border border-gray-300 p-2 text-center text-gray-400">---</td>
-                          <td className="border border-gray-300 p-2 text-center text-gray-400">---</td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                          <td className="border border-gray-300 p-2"></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Summary Section */}
-              <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {selectedParticipationForChecklist.candidateId?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Total Participants</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {Object.values(checklistData).filter((item: any) => {
-                      const total = (item?.performance || 0) + (item?.presentation || 0) + (item?.creativity || 0) + (item?.timeManagement || 0)
-                      return total >= 80
-                    }).length}
-                  </div>
-                  <div className="text-sm text-gray-600">Grade A (80+)</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {Object.values(checklistData).filter((item: any) => {
-                      const total = (item?.performance || 0) + (item?.presentation || 0) + (item?.creativity || 0) + (item?.timeManagement || 0)
-                      return total >= 60 && total < 80
-                    }).length}
-                  </div>
-                  <div className="text-sm text-gray-600">Grade B (60-79)</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {Object.values(checklistData).reduce((avg: number, item: any) => {
-                      const total = (item?.performance || 0) + (item?.presentation || 0) + (item?.creativity || 0) + (item?.timeManagement || 0)
-                      return avg + total
-                    }, 0) / Math.max(Object.keys(checklistData).length, 1)}
-                  </div>
-                  <div className="text-sm text-gray-600">Average Score</div>
-                </div>
-              </div>
-
-              {/* Judge Information Section */}
-              <div className="grid grid-cols-2 gap-6 border-t-2 pt-4">
-                <div className="space-y-4">
-                  <h4 className="font-bold">JUDGE 1</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Name:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                    <div>Signature:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                    <div>Date:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="font-bold">JUDGE 2</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Name:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                    <div>Signature:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                    <div>Date:</div>
-                    <div className="border-b border-gray-300 min-h-6"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="flex justify-between">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsChecklistDialogOpen(false)}>
-                Close
-              </Button>
-              <Button variant="outline" onClick={() => window.print()}>
-                <FileText className="mr-2 h-4 w-4" />
-                Print Form
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  // Save judgment data
-                  try {
-                    await axios.post(`/participations/${selectedParticipationForChecklist._id}/judgment`, {
-                      judgmentData: checklistData,
-                      judgeId: user?.id,
-                      submittedAt: new Date().toISOString()
-                    })
-                    toast({
-                      title: "Success",
-                      description: "Judgment data saved successfully",
-                    })
-                  } catch (error) {
-                    toast({
-                      title: "Error",
-                      description: "Failed to save judgment data",
-                      variant: "destructive",
-                    })
-                  }
-                }}
-              >
-                Save Scores
-              </Button>
-              <Button onClick={async () => {
-                // Submit final judgment
-                try {
-                  await axios.post(`/participations/${selectedParticipationForChecklist._id}/judgment/submit`, {
-                    judgmentData: checklistData,
-                    judgeId: user?.id,
-                    finalSubmission: true,
-                    submittedAt: new Date().toISOString()
-                  })
-                  toast({
-                    title: "Success",
-                    description: "Judgment submitted successfully",
-                  })
-                  setIsChecklistDialogOpen(false)
-                } catch (error) {
-                  toast({
-                    title: "Error",
-                    description: "Failed to submit judgment",
-                    variant: "destructive",
-                  })
-                }
-              }}>
-                Submit Judgment
-              </Button>
-            </div>
+            </Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
