@@ -47,7 +47,7 @@ export default function ProgramJudgmentPage() {
     const getGradeAndPosition = async () => {
         try {
             const grade = await axios.get(`/grades/program/${programId}`);
-            const position = await axios.get(`/position/program/${programId}`);
+            const position = await axios.get(`/positions/program/${programId}`);
             setGrade(grade.data || []);
             setPosition(position.data || []);
         } catch (error) {

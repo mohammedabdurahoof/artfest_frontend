@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
 import { Grade, Position } from "@/types"
+import { is } from "date-fns/locale"
 
 
 const gradeColors = [
@@ -48,6 +49,7 @@ export default function PositionsGradesPage() {
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
   const [positionFormData, setPositionFormData] = useState({
     isGroup: false,
+    isKulliyya: false,
     category: "First",
     points: 0,
     rank: 1,
@@ -102,7 +104,7 @@ export default function PositionsGradesPage() {
       const response = await api.post("/positions", positionFormData)
       setPositions([...positions, response.data.data])
       setIsAddPositionDialogOpen(false)
-      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true })
+      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true, isKulliyya: false })
       toast({
         title: "Success",
         description: "Position added successfully",
@@ -125,7 +127,7 @@ export default function PositionsGradesPage() {
       setPositions(positions.map((position) => (position._id === selectedPosition._id ? response.data.data : position)))
       setIsEditPositionDialogOpen(false)
       setSelectedPosition(null)
-      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true })
+      setPositionFormData({ isGroup: false, category: "first", points: 0, rank: 1, isActive: true, isKulliyya: false })
       toast({
         title: "Success",
         description: "Position updated successfully",
@@ -223,6 +225,7 @@ export default function PositionsGradesPage() {
       points: position.points,
       rank: position.rank,
       isActive: position.isActive,
+      isKulliyya: position.isKulliyya,
     })
     setIsEditPositionDialogOpen(true)
   }
@@ -378,6 +381,23 @@ export default function PositionsGradesPage() {
                         <SelectContent>
                           <SelectItem value="true">Group</SelectItem>
                           <SelectItem value="false">Individual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="position-isKulliyya">Is Kulliyya</Label>
+                      <Select
+                        value={positionFormData.isKulliyya ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setPositionFormData({ ...positionFormData, isKulliyya: value === "true" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Kulliyya</SelectItem>
+                          <SelectItem value="false">Non-Kulliyya</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -887,7 +907,7 @@ export default function PositionsGradesPage() {
                   }
                   placeholder="Enter To Percentage"
                 />
-              </div>  
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="grade-color">Color</Label>
                 <Select

@@ -1421,14 +1421,14 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
                 <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f9f9f9'};">
                   <td style="border: 1px solid #333; padding: 8px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid #333; padding: 8px;  font-size: 20px; font-weight: bold; text-align: center;">${participation.candidateId[0].chestNo}</td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; text-align: center; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
                 </tr>
               `).join('') || '<tr><td colspan="11" style="border: 1px solid #333; padding: 8px; text-align: center;">No participants</td></tr>'}
               
@@ -1437,13 +1437,13 @@ const generateJudgeFormHTML = (program: Program, participations: any[]) => {
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; color: #999;">${(participations?.length || 0) + index + 1}</td>
                   <td style="border: 1px solid #333; padding: 8px; color: #999;"></td>
                   <td style="border: 1px solid #333; padding: 8px; text-align: center; color: #999;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
-                  <td style="border: 1px solid #333; padding: 8px; height: 40px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
+                  <td style="border: 1px solid #333; padding: 8px; height: 35px;"></td>
                 </tr>
               `).join('')}
 

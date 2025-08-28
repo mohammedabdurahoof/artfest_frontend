@@ -164,6 +164,7 @@ export interface ItemRegistration {
 export interface Position {
   _id: string
   isGroup: boolean
+  isKulliyya: boolean
   category: PositionCategory
   points: number
   rank: number
