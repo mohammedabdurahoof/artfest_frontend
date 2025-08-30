@@ -798,6 +798,23 @@ export default function PositionsGradesPage() {
                 </Select>
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="position-isKulliyya">Is Kulliyya</Label>
+                <Select
+                  value={positionFormData.isKulliyya ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setPositionFormData({ ...positionFormData, isKulliyya: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Kulliyya</SelectItem>
+                    <SelectItem value="false">Non-Kulliyya</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="position-isactive">Is Active</Label>
                 <Select
                   value={positionFormData.isActive ? "true" : "false"}

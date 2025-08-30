@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import axios from "@/lib/axios";
-import { useParams } from "next/navigation";
+import { redirect, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Grade, Judgment, Participation, Position, Program } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { se } from "date-fns/locale";
+import { it } from "node:test";
+import { Arrow } from "@radix-ui/react-tooltip";
+import { ArrowLeft } from "lucide-react";
 
 export default function ProgramJudgmentPage() {
     const { programId } = useParams();
@@ -18,6 +21,9 @@ export default function ProgramJudgmentPage() {
     const [formData, setFormData] = useState<{ participation: Participation, judgment: Judgment }[]>([]);
     const [grade, setGrade] = useState<Grade[]>([]);
     const [position, setPosition] = useState<Position[]>([]);
+    const [inputError, setInputError] = useState<Record<string, string>>({});
+
+
 
     useEffect(() => {
         if (programId) {
@@ -48,8 +54,9 @@ export default function ProgramJudgmentPage() {
         try {
             const grade = await axios.get(`/grades/program/${programId}`);
             const position = await axios.get(`/positions/program/${programId}`);
-            setGrade(grade.data || []);
-            setPosition(position.data || []);
+            setGrade(grade.data.data.grades || []);
+            setPosition(position.data.data.positions || []);
+
         } catch (error) {
             console.error("Error fetching grade and position:", error);
             toast({
@@ -65,6 +72,19 @@ export default function ProgramJudgmentPage() {
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
+        // Check if point value is above 100
+        if (name.startsWith("point") && Number(value) > 100) {
+            setInputError(prev => ({
+                ...prev,
+                [participationId + name]: "Point cannot be above 100"
+            }));
+            return;
+        } else {
+            setInputError(prev => ({
+                ...prev,
+                [participationId + name]: ""
+            }));
+        }
 
         setFormData(prev =>
             prev.map(item =>
@@ -79,6 +99,94 @@ export default function ProgramJudgmentPage() {
                     : item
             )
         );
+    };
+    const getMaxPossibleTotal = () => {
+        let maxPoints = 0;
+        const pointFields: (keyof Judgment)[] = ["point1", "point2", "point3", "point4", "point5"];
+        pointFields.forEach((field, idx) => {
+            const anyEntered = formData.some(item => Number(item.judgment?.[field]) > 0);
+            if (anyEntered) {
+                maxPoints = (idx + 1) * 100;
+            }
+        });
+        return maxPoints;
+    };
+
+
+
+    const getGrade = (score: number) => {
+        const maxPossibleTotal = getMaxPossibleTotal();
+        const percentage = maxPossibleTotal > 0 ? (score / maxPossibleTotal) * 100 : 0;
+        if (!Array.isArray(grade)) return null;
+        const foundGrade = grade.find(g => percentage >= g.from && percentage <= g.to);
+        return foundGrade ? foundGrade : null;
+    };
+
+    const getPosition = (rank: number) => {
+        if (!Array.isArray(position)) return null;
+        const found = position.find(p => p.rank === rank);
+        return found ? found : null;
+    };
+
+    // Calculate totals and sort for ranking
+    const totalsWithIndex = formData.map((item, idx) => ({
+        idx,
+        total:
+            (Number(item.judgment?.point1) || 0) +
+            (Number(item.judgment?.point2) || 0) +
+            (Number(item.judgment?.point3) || 0) +
+            (Number(item.judgment?.point4) || 0) +
+            (Number(item.judgment?.point5) || 0)
+    }));
+
+    // Sort by total descending
+    const sorted = [...totalsWithIndex].sort((a, b) => b.total - a.total);
+
+    // Map index to position (rank)
+    const indexToPosition: Record<number, number> = {};
+    sorted.forEach((item, rank) => {
+        indexToPosition[item.idx] = rank + 1;
+    });
+
+    const handleSubmit = async (resultStatus: string) => {
+        setLoading(true);
+        try {
+            await Promise.all(
+                formData.flatMap((item, index) => [
+                    item.judgment._id
+                        ? axios.patch(`/judgments/${item.judgment._id}`, { ...item.judgment, participation: item.participation._id })
+                        : axios.post(`/judgments`, { ...item.judgment, participation: item.participation._id }),
+                    axios.patch(`/participations/result/${item.participation._id}`, {
+                        ...item.participation,
+                        resultStatus,
+                        position: getPosition(indexToPosition[index])?._id,
+                        grade: getGrade(
+                            (Number(item.judgment?.point1) || 0) +
+                            (Number(item.judgment?.point2) || 0) +
+                            (Number(item.judgment?.point3) || 0) +
+                            (Number(item.judgment?.point4) || 0) +
+                            (Number(item.judgment?.point5) || 0)
+                        )?._id
+                    }),
+                ])
+            );
+            axios.patch(`/programs/${programId}`, { resultStatus })
+            await fetchProgramWithParticipationAndJudgments()
+            toast({
+                title: "Success",
+                description: "Judgments submitted successfully",
+                variant: "default",
+            });
+        } catch (error) {
+            console.error("Error submitting judgments:", error);
+            toast({
+                title: "Error",
+                description: "Failed to submit judgments",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading) {
@@ -128,7 +236,7 @@ export default function ProgramJudgmentPage() {
                                     const pid = participation.participation._id;
                                     const data = participation.judgment || {
                                         point1: 0, point2: 0, point3: 0, point4: 0, point5: 0,
-                                        remark: "", position: "", grade: ""
+                                        remarks: "", position: "", grade: ""
                                     };
                                     const total =
                                         (Number(data.point1) || 0) +
@@ -136,15 +244,7 @@ export default function ProgramJudgmentPage() {
                                         (Number(data.point3) || 0) +
                                         (Number(data.point4) || 0) +
                                         (Number(data.point5) || 0);
-
-                                    const getGrade = (score: number) => {
-                                        if (score >= 90) return 'A+'
-                                        if (score >= 80) return 'A'
-                                        if (score >= 70) return 'B+'
-                                        if (score >= 60) return 'B'
-                                        if (score >= 50) return 'C'
-                                        return 'F'
-                                    };
+                                    const position = indexToPosition[index]; // 1-based rank
 
                                     return (
                                         <tr key={index} className="hover:bg-gray-50">
@@ -168,20 +268,21 @@ export default function ProgramJudgmentPage() {
                                                     name="point1"
                                                     value={data.point1 ?? 0}
                                                     onChange={e => handleInputChange(pid, e)}
-                                                    className="w-16 h-8 text-center text-xs"
+                                                    className={`w-16 h-8 text-center text-xs ${inputError[pid + "point1"] ? "border-red-500 text-red-600 focus:ring-red-500" : ""
+                                                        }`}
                                                     onKeyDown={e => {
                                                         if (e.key === "Enter") {
-                                                            // Find all inputs with name="point1"
                                                             const inputs = Array.from(document.querySelectorAll('input[name="point1"]'));
-                                                            // Find current input index
                                                             const idx = inputs.indexOf(e.target as HTMLInputElement);
-                                                            // Focus next input if exists
                                                             if (idx !== -1 && idx < inputs.length - 1) {
                                                                 (inputs[idx + 1] as HTMLInputElement).focus();
                                                             }
                                                         }
                                                     }}
                                                 />
+                                                {inputError[pid + "point1"] && (
+                                                    <div className="text-xs text-red-600 mt-2">{inputError[pid + "point1"]}</div>
+                                                )}
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center">
                                                 <Input
@@ -191,7 +292,8 @@ export default function ProgramJudgmentPage() {
                                                     name="point2"
                                                     value={data.point2}
                                                     onChange={e => handleInputChange(pid, e)}
-                                                    className="w-16 h-8 text-center text-xs"
+                                                    className={`w-16 h-8 text-center text-xs ${inputError[pid + "point2"] ? "border-red-500 text-red-600 focus:ring-red-500" : ""
+                                                        }`}
                                                     onKeyDown={e => {
                                                         if (e.key === "Enter") {
                                                             // Find all inputs with name="point2"
@@ -205,6 +307,9 @@ export default function ProgramJudgmentPage() {
                                                         }
                                                     }}
                                                 />
+                                                {inputError[pid + "point2"] && (
+                                                    <div className="text-xs text-red-600 mt-2">{inputError[pid + "point2"]}</div>
+                                                )}
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center">
                                                 <Input
@@ -228,6 +333,9 @@ export default function ProgramJudgmentPage() {
                                                         }
                                                     }}
                                                 />
+                                                {inputError[pid + "point3"] && (
+                                                    <div className="text-xs text-red-600 mt-2">{inputError[pid + "point3"]}</div>
+                                                )}
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center">
                                                 <Input
@@ -251,6 +359,9 @@ export default function ProgramJudgmentPage() {
                                                         }
                                                     }}
                                                 />
+                                                {inputError[pid + "point4"] && (
+                                                    <div className="text-xs text-red-600 mt-2">{inputError[pid + "point4"]}</div>
+                                                )}
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center">
                                                 <Input
@@ -274,8 +385,10 @@ export default function ProgramJudgmentPage() {
                                                         }
                                                     }}
                                                 />
+                                                {inputError[pid + "point5"] && (
+                                                    <div className="text-xs text-red-600 mt-2">{inputError[pid + "point5"]}</div>
+                                                )}
                                             </td>
-
                                             <td className="border border-gray-300 p-2 text-center font-bold">
                                                 <div className={`w-16 h-8 flex items-center justify-center rounded ${total >= 80 ? 'bg-green-100 text-green-800' :
                                                     total >= 60 ? 'bg-yellow-100 text-yellow-800' :
@@ -286,47 +399,47 @@ export default function ProgramJudgmentPage() {
                                                 </div>
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center font-bold">
-                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${total >= 80 ? 'bg-green-200 text-green-900' :
-                                                    total >= 60 ? 'bg-yellow-200 text-yellow-900' :
-                                                        total >= 40 ? 'bg-orange-200 text-orange-900' :
+                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${getGrade(total)?.category === "A" ? 'bg-green-200 text-green-900' :
+                                                    getGrade(total)?.category === "B" ? 'bg-yellow-200 text-yellow-900' :
+                                                        getGrade(total)?.category === "C" ? 'bg-orange-200 text-orange-900' :
                                                             'bg-red-200 text-red-900'
                                                     }`}>
-                                                    {getGrade(total)}
+                                                    {getGrade(total)?.category}
                                                 </div>
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center font-bold">
-                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${total >= 80 ? 'bg-green-200 text-green-900' :
-                                                    total >= 60 ? 'bg-yellow-200 text-yellow-900' :
-                                                        total >= 40 ? 'bg-orange-200 text-orange-900' :
+                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${getGrade(total)?.category === "A" ? 'bg-green-200 text-green-900' :
+                                                    getGrade(total)?.category === "B" ? 'bg-yellow-200 text-yellow-900' :
+                                                        getGrade(total)?.category === "C" ? 'bg-orange-200 text-orange-900' :
                                                             'bg-red-200 text-red-900'
                                                     }`}>
-                                                    {getGrade(total)}
+                                                    {getGrade(total)?.points}
                                                 </div>
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center font-bold">
-                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${total >= 80 ? 'bg-green-200 text-green-900' :
-                                                    total >= 60 ? 'bg-yellow-200 text-yellow-900' :
-                                                        total >= 40 ? 'bg-orange-200 text-orange-900' :
+                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${position === 1 ? 'bg-green-200 text-green-900' :
+                                                    position === 2 ? 'bg-yellow-200 text-yellow-900' :
+                                                        position === 3 ? 'bg-orange-200 text-orange-900' :
                                                             'bg-red-200 text-red-900'
                                                     }`}>
-                                                    {getGrade(total)}
+                                                    {getPosition(position)?.rank || ""}
                                                 </div>
                                             </td>
                                             <td className="border border-gray-300 p-2 text-center font-bold">
-                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${total >= 80 ? 'bg-green-200 text-green-900' :
-                                                    total >= 60 ? 'bg-yellow-200 text-yellow-900' :
-                                                        total >= 40 ? 'bg-orange-200 text-orange-900' :
+                                                <div className={`w-12 h-8 flex items-center justify-center rounded font-bold ${position === 1 ? 'bg-green-200 text-green-900' :
+                                                    position === 2 ? 'bg-yellow-200 text-yellow-900' :
+                                                        position === 3 ? 'bg-orange-200 text-orange-900' :
                                                             'bg-red-200 text-red-900'
                                                     }`}>
-                                                    {getGrade(total)}
+                                                    {getPosition(position)?.points || ""}
                                                 </div>
                                             </td>
 
                                             <td className="border border-gray-300 p-2">
                                                 <Input
                                                     placeholder="Judge remarks..."
-                                                    value={data.remark ?? ""} // ensures value is always a string
-                                                    name="remark"
+                                                    value={data.remarks ?? ""} // ensures value is always a string
+                                                    name="remarks"
                                                     onChange={e => handleInputChange(pid, e)}
                                                     className="border-0 p-1 h-8 text-xs"
                                                 />
@@ -341,58 +454,24 @@ export default function ProgramJudgmentPage() {
             </div>
 
 
-            <div className="flex justify-between mt-10 float-end">
-                <div className="flex gap-2">
-                    <Button
-                        variant="secondary"
-                        onClick={async () => {
-                            // Save judgment data
-                            // try {
-                            //     await axios.post(`/participations/${selectedParticipationForChecklist._id}/judgment`, {
-                            //         judgmentData: checklistData,
-                            //         judgeId: user?.id,
-                            //         submittedAt: new Date().toISOString()
-                            //     })
-                            //     toast({
-                            //         title: "Success",
-                            //         description: "Judgment data saved successfully",
-                            //     })
-                            // } catch (error) {
-                            //     toast({
-                            //         title: "Error",
-                            //         description: "Failed to save judgment data",
-                            //         variant: "destructive",
-                            //     })
-                            // }
-                        }}
-                    >
-                        Save Scores
-                    </Button>
-                    <Button onClick={async () => {
-                        // Submit final judgment
-                        // try {
-                        //     await axios.post(`/participations/${selectedParticipationForChecklist._id}/judgment/submit`, {
-                        //         judgmentData: checklistData,
-                        //         judgeId: user?.id,
-                        //         finalSubmission: true,
-                        //         submittedAt: new Date().toISOString()
-                        //     })
-                        //     toast({
-                        //         title: "Success",
-                        //         description: "Judgment submitted successfully",
-                        //     })
-                        //     setIsChecklistDialogOpen(false)
-                        // } catch (error) {
-                        //     toast({
-                        //         title: "Error",
-                        //         description: "Failed to submit judgment",
-                        //         variant: "destructive",
-                        //     })
-                        // }
-                    }}>
-                        Submit Judgment
-                    </Button>
-                </div>
+            <div className="flex justify-between mt-10">
+                <Button variant="secondary" onClick={() => redirect('/admin/judgment')}>
+                    <ArrowLeft className="mr-2" />
+                    Back
+                </Button>
+                {['pending', 'Pending', 'processing', 'completed'].includes(program?.resultStatus || '') && (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => handleSubmit("processing")}
+                        >
+                            Save Scores
+                        </Button>
+                        <Button onClick={() => handleSubmit("completed")}>
+                            Submit Judgment
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );

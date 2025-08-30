@@ -90,12 +90,29 @@ export default function JudgmentPage() {
         }
     }
 
-    const updateStatus = async (program: Program, value: string, status: string) => {
+    const updateStatus = async (program: Program, value: string) => {
         try {
-            await axios.patch(`/programs/${program._id}`, status === "status" ? { status: value } : { resultStatus: value })
+            await axios.patch(`/programs/${program._id}`, { status: value })
             toast({
                 title: "Success",
                 description: "Program status updated",
+            })
+            fetchPrograms()
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to update status",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const updateResultStatus = async (program: Program, value: string) => {
+        try {
+            await axios.patch(`/programs/change_result_status/${program._id}`, { resultStatus: value })
+            toast({
+                title: "Success",
+                description: "Program result status updated",
             })
             fetchPrograms()
         } catch (error: any) {
@@ -371,7 +388,7 @@ export default function JudgmentPage() {
                                                 <TableCell>
                                                     <Select
                                                         value={program.status}
-                                                        onValueChange={(value) => updateStatus(program, value, "status")}
+                                                        onValueChange={(value) => updateStatus(program, value)}
                                                     >
                                                         <SelectTrigger
                                                             className={`w-28 h-6 text-xs rounded-3xl ${program.status === "Completed"
@@ -397,34 +414,36 @@ export default function JudgmentPage() {
                                                     </Select>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Select
-                                                        value={program.resultStatus}
-                                                        onValueChange={(value) => updateStatus(program, value, "resultStatus")}
-                                                    >
-                                                        <SelectTrigger
-                                                            className={`w-28 h-6 text-xs rounded-3xl ${program.resultStatus === "completed"
-                                                                ? "bg-green-500 text-white"
-                                                                : program.resultStatus === "pending"
-                                                                    ? "bg-yellow-500 text-black"
-                                                                    : program.resultStatus === "processing"
-                                                                        ? "bg-blue-500 text-white"
-                                                                        : program.resultStatus === "archived"
-                                                                            ? "bg-gray-500 text-white"
-                                                                            : program.resultStatus === "published"
-                                                                                ? "bg-purple-500 text-white"
-                                                                                : "bg-gray-200 text-black"
-                                                                }`}
+                                                    {program.resultStatus === "pending" || program.resultStatus === "Pending" ? (
+                                                        <>
+                                                            <div className="w-28 h-6 text-xs rounded-3xl bg-yellow-500 text-white text-center p-1">Pending</div>
+                                                        </>
+                                                    ) : program.resultStatus === "processing" ? (
+                                                        <div className="w-28 h-6 text-xs rounded-3xl bg-blue-500 text-white text-center p-1">Processing</div>
+                                                    ) : (
+                                                        <Select
+                                                            value={program.resultStatus}
+                                                            onValueChange={(value) => updateResultStatus(program, value)}
                                                         >
-                                                            <SelectValue placeholder="Result Status" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="pending">Pending</SelectItem>
-                                                            <SelectItem value="processing">Processing</SelectItem>
-                                                            <SelectItem value="completed">Completed</SelectItem>
-                                                            <SelectItem value="archived">Archived</SelectItem>
-                                                            <SelectItem value="published">Published</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                            <SelectTrigger
+                                                                className={`w-28 h-6 text-xs rounded-3xl ${program.resultStatus === "completed"
+                                                                    ? "bg-green-500 text-white"
+                                                                    : program.resultStatus === "archived"
+                                                                        ? "bg-gray-500 text-white"
+                                                                        : program.resultStatus === "published"
+                                                                            ? "bg-purple-500 text-white"
+                                                                            : "bg-gray-200 text-black"
+                                                                    }`}
+                                                            >
+                                                                <SelectValue placeholder="Result Status" />
+                                                            </SelectTrigger>
+                                                            <SelectContent> 
+                                                                <SelectItem value="completed">Completed</SelectItem>
+                                                                <SelectItem value="archived">Archived</SelectItem>
+                                                                <SelectItem value="published">Published</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <Link href={`/admin/judgment/${program._id}`}>
@@ -459,6 +478,6 @@ export default function JudgmentPage() {
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }

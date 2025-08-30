@@ -632,7 +632,7 @@ export default function ProgramsPage() {
                   <TableHead>Schedule</TableHead>
                   <TableHead>Venue</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Results</TableHead>
+                  {/* <TableHead>Results</TableHead> */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -691,9 +691,9 @@ export default function ProgramsPage() {
                     <TableCell>
                       <Badge className={getStatusColor(program.status)}>{program.status}</Badge>
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       <Badge className={getResultStatusColor(program.resultStatus)}>{program.resultStatus}</Badge>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
