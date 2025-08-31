@@ -150,7 +150,6 @@ export default function JudgmentPage() {
         try {
             setLoading(true)
             const result = await axios.post("/programs/bulk_result", { programIds })
-            console.log("Bulk update result:", result.data.data)
             const printWindow = window.open('', '', 'width=900,height=600');
             if (printWindow) {
                 printWindow.document.write(`
@@ -159,7 +158,7 @@ export default function JudgmentPage() {
 
             <head>
             <meta charset="UTF-8">
-            <title>Result 1 – Page 1</title>
+            <title>Mafeeh - Result</title>
             <style>
                 body {
                 font-family: Arial, Helvetica, sans-serif;
@@ -260,7 +259,11 @@ export default function JudgmentPage() {
                     return `
             <table>
             <thead>
-                <div class="section-title">${data.program.programCode} - ${data.program.name} | ${data.program.category}</div>
+                <tr>
+                    <th class="section-title" colspan="5">
+                        ${data.program.programCode} - ${data.program.name} | ${data.program.category}
+                    </th>
+                </tr>
                 <tr>
                     <th>Position</th>
                     <th>Grade</th>
