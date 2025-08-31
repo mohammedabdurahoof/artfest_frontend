@@ -204,6 +204,7 @@ export default function JudgmentPage() {
                 th {
                 background: #f2f2f2;
                 font-weight: bold;
+                 -webkit-print-color-adjust: exact;
                 }
 
                 .section-title {
@@ -214,6 +215,7 @@ export default function JudgmentPage() {
                 background-color: #000;
                 color: #fff;
                 padding: 7px;
+                 -webkit-print-color-adjust: exact;
                 }
 
                 .footer-note {
@@ -221,6 +223,22 @@ export default function JudgmentPage() {
                 margin-top: 30px;
                 text-align: center;
                 }
+                @media print {
+                    table {
+                        page-break-inside: avoid; /* keep entire table together */
+                    }
+                    tr {
+                        page-break-inside: avoid; /* keep row together */
+                        page-break-after: auto;
+                    }
+                    thead {
+                        display: table-header-group; /* repeat header on each new page */
+                    }
+                    tfoot {
+                        display: table-footer-group; /* repeat footer if needed */
+                    }
+                }
+
             </style>
             </head>
 
@@ -240,9 +258,9 @@ export default function JudgmentPage() {
                         return gradeA.localeCompare(gradeB);
                     });
                     return `
-            <div class="section-title">${data.program.programCode} - ${data.program.name} | ${data.program.category}</div>
             <table>
-                <thead>
+            <thead>
+                <div class="section-title">${data.program.programCode} - ${data.program.name} | ${data.program.category}</div>
                 <tr>
                     <th>Position</th>
                     <th>Grade</th>
