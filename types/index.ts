@@ -58,7 +58,7 @@ export interface Student {
   class: string
   category: Category
   team: Team
-  totalPoint: number
+  totalPoint: Map<string, number>
   createdAt: string
   updatedAt: string
 }

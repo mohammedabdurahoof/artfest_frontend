@@ -207,7 +207,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -240,7 +240,7 @@ export default function StudentsPage() {
             <p className="text-xs text-muted-foreground">Across all students</p>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <Card>
         <CardHeader>
@@ -288,7 +288,9 @@ export default function StudentsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{student.totalPoint}</span>
+                      <span className="font-medium">{typeof student.totalPoint === "object"
+                        ? student.totalPoint.published || 0
+                        : student.totalPoint || 0}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       {hasPermission("edit_students") || hasPermission("delete_students") ? (

@@ -294,7 +294,7 @@ export default function TeamsPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teams.reduce((sum, team) => sum + team.totalPoint, 0)}</div>
+            <div className="text-2xl font-bold">{teams.reduce((sum, team) => sum + team.totalPoint.published, 0)}</div>
           </CardContent>
         </Card>
       </div>
@@ -350,7 +350,7 @@ export default function TeamsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {team.totalPoint}
+                      {team.totalPoint.published}
                     </Badge>
                   </TableCell>
                   <TableCell>

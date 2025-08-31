@@ -181,12 +181,6 @@ export default function JudgmentPage() {
                             Programs
                         </Button>
                     </Link>
-                    {hasPermission("add_judgments") && (
-                        <Button onClick={() => setIsCreateDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Judgment
-                        </Button>
-                    )}
                 </div>
             </div>
 
