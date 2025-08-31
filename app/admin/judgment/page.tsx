@@ -13,6 +13,7 @@ import { Search, Plus, Edit, FileText, Trophy, Award, Clock, Filter, X, Printer 
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { Judgment, Participation, Program } from "@/types"
+import { se } from "date-fns/locale"
 
 
 export default function JudgmentPage() {
@@ -25,19 +26,7 @@ export default function JudgmentPage() {
     const [resultStatusFilter, setResultStatusFilter] = useState("all")
     const [programFilter, setProgramFilter] = useState("all")
     const [categoryFilter, setCategoryFilter] = useState("all")
-
-    // Dialog states
-    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-
-    // Selected items
-    const [selectedJudgment, setSelectedJudgment] = useState<Judgment | null>(null)
-    const [selectedParticipation, setSelectedParticipation] = useState<Participation | null>(null)
-    const [judgmentToDelete, setJudgmentToDelete] = useState<Judgment | null>(null)
-
-
-    const { hasPermission } = useAuth()
+    const [result, setResult] = useState<{ program: Program | null; participation: Participation | null }[]>([])
 
     useEffect(() => {
         fetchJudgments()
@@ -155,6 +144,150 @@ export default function JudgmentPage() {
     const categories = ["all", "Bidaya", "Ula", "Thaniyya", "Thanawiyya", "Aliya", "Kulliyya"]
     const statuses = ["all", "Draft", "Pending", "Scheduled", "Cancelled", "Completed"]
     const resultStatuses = ["all", "pending", "processing", "completed", "archived", "published"]
+
+    const printAllResultStatuses = async () => {
+        const programIds = filteredPrograms.map(program => program._id)
+        try {
+            setLoading(true)
+            const result = await axios.post("/programs/bulk_result", { programIds })
+            console.log("Bulk update result:", result.data.data)
+            const printWindow = window.open('', '', 'width=900,height=600');
+            if (printWindow) {
+                printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+
+            <head>
+            <meta charset="UTF-8">
+            <title>Result 1 – Page 1</title>
+            <style>
+                body {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 14px;
+                margin: 40px;
+                color: #000;
+                }
+
+                h1,
+                h2,
+                h3 {
+                text-align: center;
+                margin: 0;
+                padding: 0;
+                }
+
+                h1 {
+                font-size: 32px;
+                font-weight: bold;
+                margin-bottom: 5px;
+                }
+
+                h2 {
+                font-size: 28px;
+                font-weight: normal;
+                margin-bottom: 20px;
+                }
+
+                table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 25px;
+                }
+
+                th,
+                td {
+                border: 1px solid #000;
+                padding: 6px 10px;
+                text-align: center;
+                }
+
+                th {
+                background: #f2f2f2;
+                font-weight: bold;
+                }
+
+                .section-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin: 25px 0 0px 0;
+                text-align: center;
+                background-color: #000;
+                color: #fff;
+                padding: 7px;
+                }
+
+                .footer-note {
+                font-size: 12px;
+                margin-top: 30px;
+                text-align: center;
+                }
+            </style>
+            </head>
+
+            <body>
+            <h1>MAFEEH 2025</h1>
+            <h2>NAHJ ART FEST</h2>
+            <h3>RESULTS </h3>
+
+            ${result.data.data.map((data: { program: Program, participations: Participation[] }) => {
+                    // Sort participations by position.rank, then grade?.category
+                    const sortedParticipations = [...data.participations].sort((a, b) => {
+                        const rankA = a.position?.rank ?? 9999;
+                        const rankB = b.position?.rank ?? 9999;
+                        if (rankA !== rankB) return rankA - rankB;
+                        const gradeA = a.grade?.category ?? '';
+                        const gradeB = b.grade?.category ?? '';
+                        return gradeA.localeCompare(gradeB);
+                    });
+                    return `
+            <div class="section-title">${data.program.programCode} - ${data.program.name} | ${data.program.category}</div>
+            <table>
+                <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Grade</th>
+                    <th>Chest No.</th>
+                    <th>Name</th>
+                    <th>Team</th>
+                </tr>
+                </thead>
+                <tbody>
+                ${sortedParticipations.map((participation: Participation) => `
+                    <tr>
+                        <td>${participation.position?.rank || '-'}</td>
+                        <td>${participation.grade?.category || '-'}</td>
+                        <td>${participation.candidateId[0].chestNo}</td>
+                        <td>${participation.candidateId[0].name}${participation.candidateId[1] ? ' & Team' : ''}</td>
+                        <td>${participation.team.name}</td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>`;
+                }).join('')}
+
+            <div class="footer-note">
+                Result Generated @ ${new Date().toLocaleString()}
+            </div>
+            </body >
+
+            </html >
+        `);
+                printWindow.document.close();
+                printWindow.focus();
+                // printWindow.print();
+            }
+        } catch (error) {
+            console.error("Error printing all result statuses:", error)
+            toast({
+                title: "Error",
+                description: "Failed to print result statuses.",
+                variant: "destructive"
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
 
     if (loading) {
         return (
@@ -343,6 +476,18 @@ export default function JudgmentPage() {
                         )}
                     </div>
 
+                    {/* Print All Filtered Results Button */}
+                    <div className="flex justify-end mb-4">
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={printAllResultStatuses}
+                        >
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print All Filtered Results
+                        </Button>
+                    </div>
+
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
@@ -431,7 +576,7 @@ export default function JudgmentPage() {
                                                             >
                                                                 <SelectValue placeholder="Result Status" />
                                                             </SelectTrigger>
-                                                            <SelectContent> 
+                                                            <SelectContent>
                                                                 <SelectItem value="completed">Completed</SelectItem>
                                                                 <SelectItem value="archived">Archived</SelectItem>
                                                                 <SelectItem value="published">Published</SelectItem>
@@ -446,15 +591,6 @@ export default function JudgmentPage() {
                                                             Mark Entry
                                                         </Button>
                                                     </Link>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => window.print()}
-                                                        className="ml-2"
-                                                    >
-                                                        <Printer className="mr-2 h-4 w-4" />
-                                                        Print
-                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         )
@@ -465,13 +601,15 @@ export default function JudgmentPage() {
                     </div>
 
                     {/* Results Summary */}
-                    {hasActiveFilters && (
-                        <div className="mt-4 text-sm text-muted-foreground">
-                            Showing {filteredPrograms.length} of {programs.length} programs
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                    {
+                        hasActiveFilters && (
+                            <div className="mt-4 text-sm text-muted-foreground">
+                                Showing {filteredPrograms.length} of {programs.length} programs
+                            </div>
+                        )
+                    }
+                </CardContent >
+            </Card >
         </div >
     )
 }

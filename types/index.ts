@@ -115,7 +115,7 @@ export interface Curb {
 // Participation Management
 export interface Participation {
   _id: string
-  candidateId: string
+  candidateId: string | Student[]
   candidate?: Student
   programId: string
   program?: Program
@@ -123,8 +123,8 @@ export interface Participation {
   teamId: string
   codeLetter: string
   isPresent: boolean
-  position?: number
-  grade?: string
+  position?: Position
+  grade?: Grade
   createdAt: string
   updatedAt: string
 }
