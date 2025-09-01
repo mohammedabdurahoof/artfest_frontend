@@ -256,9 +256,9 @@ export default function JudgmentPage() {
                 .grand-total {
                     font-weight: bold;
                     text-align: center;
-                      display: flex;
-      justify-content: center;  /* Horizontal center */
-      align-items: center; /* Vertical center */
+                    display: flex;
+                    justify-content: center;  /* Horizontal center */
+                    align-items: center; /* Vertical center */
                 }
 
             </style>
@@ -311,7 +311,7 @@ export default function JudgmentPage() {
 
                 <h4>Total Points : ${totalPoints}</h4>
                 <h4>No of Programs : ${filteredPrograms.length}</h4>
-<div class="grand-total">
+            <div class="grand-total">
                 <table class="grand-total-table">
             <thead>
                 <tr>
@@ -343,7 +343,7 @@ export default function JudgmentPage() {
                 `).join('')}
                 </tbody>
             </table>
-</div>
+            </div>
             <div class="footer-note">
             Result Generated @ ${new Date().toLocaleString()}
         </div>
@@ -664,7 +664,7 @@ export default function JudgmentPage() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Link href={`/ admin / judgment / ${program._id} `}>
+                                                    <Link href={`/admin/judgment/${program._id}`}>
                                                         <Button variant="outline" size="sm">
                                                             <Edit className="mr-2 h-4 w-4" />
                                                             Mark Entry
