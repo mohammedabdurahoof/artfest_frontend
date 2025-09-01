@@ -9,11 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
-import { Search, Plus, Edit, FileText, Trophy, Award, Clock, Filter, X, Printer } from "lucide-react"
+import { Search, Edit, FileText, Clock, Filter, X, Printer } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/components/auth-provider"
 import { Judgment, Participation, Program, Team } from "@/types"
-import { se } from "date-fns/locale"
+import { MultiSelect } from "@/components/ui/multiselect" // You need to implement or use a multiselect component
 
 
 export default function JudgmentPage() {
@@ -27,6 +26,9 @@ export default function JudgmentPage() {
     const [programFilter, setProgramFilter] = useState("all")
     const [categoryFilter, setCategoryFilter] = useState("all")
     const [result, setResult] = useState<{ program: Program | null; participation: Participation | null }[]>([])
+    const [selectedResultStatuses, setSelectedResultStatuses] = useState<string[]>(["all"]);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
+    const [teamPoints, setTeamPoints] = useState<Team[]>([]);
 
     useEffect(() => {
         fetchJudgments()
@@ -113,6 +115,23 @@ export default function JudgmentPage() {
         }
     }
 
+    // Fetch team points based on filters
+    useEffect(() => {
+        const fetchTeamPoints = async () => {
+            try {
+                const res = await axios.get("/teams");
+                setTeamPoints(res.data.teams || []);
+            } catch (error) {
+                toast({
+                    title: "Error",
+                    description: "Failed to fetch team points",
+                    variant: "destructive",
+                });
+            }
+        };
+        fetchTeamPoints();
+    }, [selectedResultStatuses, selectedCategories]);
+
 
     // Clear all filters
     const clearFilters = () => {
@@ -154,8 +173,16 @@ export default function JudgmentPage() {
             if (printWindow) {
                 // Sort teams by totalPoint[resultStatusFilter] descending
                 const sortedTeams = [...result.data.team].sort((a: Team, b: Team) => {
-                    const pointsA = a.totalPoint?.[resultStatusFilter] ?? 0;
-                    const pointsB = b.totalPoint?.[resultStatusFilter] ?? 0;
+                    const pointsA = resultStatusFilter === 'all'
+                        ? (a.totalPoint?.completed ?? 0) +
+                        (a.totalPoint?.archived ?? 0) +
+                        (a.totalPoint?.published ?? 0)
+                        : (a.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? a.totalPoint?.published ?? 0 : 0);
+                    const pointsB = resultStatusFilter === 'all'
+                        ? (b.totalPoint?.completed ?? 0) +
+                        (b.totalPoint?.archived ?? 0) +
+                        (b.totalPoint?.published ?? 0)
+                        : (b.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? b.totalPoint?.published ?? 0 : 0);
                     return pointsB - pointsA;
                 });
 
@@ -335,7 +362,7 @@ export default function JudgmentPage() {
                         ? (team.totalPoint?.completed ?? 0) +
                         (team.totalPoint?.archived ?? 0) +
                         (team.totalPoint?.published ?? 0)
-                        : team.totalPoint?.[resultStatusFilter] ?? 0
+                        : (team.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? team.totalPoint?.published ?? 0 : 0)
                     }
                         </td>
             
@@ -376,6 +403,14 @@ export default function JudgmentPage() {
         )
     }
 
+    // Filter display helpers
+    const resultStatusDisplay = selectedResultStatuses.length === 0
+        ? "All"
+        : selectedResultStatuses.join(" + ");
+    const categoryDisplay = selectedCategories.length === 0
+        ? "All"
+        : selectedCategories.join(" + ");
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -396,55 +431,55 @@ export default function JudgmentPage() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            {/* <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Judgments</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{judgments.length}</div>
-                        <p className="text-xs text-muted-foreground">Active judgments</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Draft</CardTitle>
-                        <Edit className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {judgments.filter(j => j.status === 'draft').length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Pending completion</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Submitted</CardTitle>
-                        <Trophy className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {judgments.filter(j => j.status === 'submitted').length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Ready for review</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Finalized</CardTitle>
-                        <Award className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {judgments.filter(j => j.status === 'finalized').length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Completed</p>
-                    </CardContent>
-                </Card>
-            </div> */}
+            {/* Team Points Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Team Points</CardTitle>
+                    <CardDescription>
+                        Showing team points for result status: <b>{resultStatusDisplay}</b>
+                        {categoryDisplay !== "All" && (
+                            <> &nbsp;|&nbsp; Category: <b>{categoryDisplay}</b></>
+                        )}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex gap-4 mb-4">
+                        <MultiSelect
+                            options={resultStatuses.filter(s => s !== "all")}
+                            selected={selectedResultStatuses}
+                            onChange={setSelectedResultStatuses}
+                            placeholder="Select Result Status(es)"
+                        />
+                        <MultiSelect
+                            options={categories.filter(c => c !== "all")}
+                            selected={selectedCategories}
+                            onChange={setSelectedCategories}
+                            placeholder="Select Category(ies)"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {teamPoints.map(team => (
+                            <Card key={team._id} className="border shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-lg font-bold">{team.name}</CardTitle>
+                                    <Badge variant="outline">{team.color}</Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {selectedResultStatuses.length === 0 || selectedResultStatuses.includes("all")
+                                            ? Object.values(team.totalPoint || {}).reduce((a, b) => a + b, 0)
+                                            : selectedResultStatuses.reduce((sum, status) => sum + (team.totalPoint?.[status] ?? 0), 0)
+                                        }
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Points ({resultStatusDisplay})
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Programs List for Judgment */}
             <Card>
@@ -689,6 +724,8 @@ export default function JudgmentPage() {
                     }
                 </CardContent >
             </Card >
+
+
         </div >
     )
 }

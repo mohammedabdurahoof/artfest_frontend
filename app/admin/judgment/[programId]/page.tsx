@@ -145,7 +145,13 @@ export default function ProgramJudgmentPage() {
     // Map index to position (rank)
     const indexToPosition: Record<number, number> = {};
     sorted.forEach((item, rank) => {
-        indexToPosition[item.idx] = rank + 1;
+        // Assign same position for same total
+        if (rank === 0) {
+            indexToPosition[item.idx] = 1;
+        } else {
+            const prev = sorted[rank - 1];
+            indexToPosition[item.idx] = item.total === prev.total ? indexToPosition[prev.idx] : rank + 1;
+        }
     });
 
     const handleSubmit = async (resultStatus: string) => {
