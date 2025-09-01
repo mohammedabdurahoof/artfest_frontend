@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast"
 import { Search, Plus, Edit, FileText, Trophy, Award, Clock, Filter, X, Printer } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { Judgment, Participation, Program } from "@/types"
+import { Judgment, Participation, Program, Team } from "@/types"
 import { se } from "date-fns/locale"
 
 
@@ -152,6 +152,18 @@ export default function JudgmentPage() {
             const result = await axios.post("/programs/bulk_result", { programIds })
             const printWindow = window.open('', '', 'width=900,height=600');
             if (printWindow) {
+                // Sort teams by totalPoint[resultStatusFilter] descending
+                const sortedTeams = [...result.data.team].sort((a: Team, b: Team) => {
+                    const pointsA = a.totalPoint?.[resultStatusFilter] ?? 0;
+                    const pointsB = b.totalPoint?.[resultStatusFilter] ?? 0;
+                    return pointsB - pointsA;
+                });
+
+                // Calculate total points of all teams
+                const totalPoints = sortedTeams.reduce((sum, team) => {
+                    return sum + (team.totalPoint?.[resultStatusFilter] ?? 0);
+                }, 0);
+
                 printWindow.document.write(`
             <!DOCTYPE html>
             <html lang="en">
@@ -238,13 +250,24 @@ export default function JudgmentPage() {
                     }
                 }
 
+                .grand-total-table {
+                    width: 50%;
+                }
+                .grand-total {
+                    font-weight: bold;
+                    text-align: center;
+                      display: flex;
+      justify-content: center;  /* Horizontal center */
+      align-items: center; /* Vertical center */
+                }
+
             </style>
             </head>
 
             <body>
             <h1>MAFEEH 2025</h1>
             <h2>NAHJ ART FEST</h2>
-            <h3>RESULTS </h3>
+            <h3>RESULTS (${resultStatusFilter})</h3>
 
             ${result.data.data.map((data: { program: Program, participations: Participation[] }) => {
                     // Sort participations by position.rank, then grade?.category
@@ -286,9 +309,44 @@ export default function JudgmentPage() {
             </table>`;
                 }).join('')}
 
+                <h4>Total Points : ${totalPoints}</h4>
+                <h4>No of Programs : ${filteredPrograms.length}</h4>
+<div class="grand-total">
+                <table class="grand-total-table">
+            <thead>
+                <tr>
+                    <th class="section-title" colspan="5">
+                        Grand Total (${resultStatusFilter})
+                    </th>
+                </tr>
+                <tr>
+                    <th>Position</th>
+                    <th>Team</th>
+                    <th>Points</th>
+                </tr>
+                </thead>
+                <tbody>
+                ${sortedTeams.map((team: Team, index: number) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${team.name || '-'}</td>
+                        <td>
+                            ${resultStatusFilter === 'all'
+                        ? (team.totalPoint?.completed ?? 0) +
+                        (team.totalPoint?.archived ?? 0) +
+                        (team.totalPoint?.published ?? 0)
+                        : team.totalPoint?.[resultStatusFilter] ?? 0
+                    }
+                        </td>
+            
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>
+</div>
             <div class="footer-note">
-                Result Generated @ ${new Date().toLocaleString()}
-            </div>
+            Result Generated @ ${new Date().toLocaleString()}
+        </div>
             </body >
 
             </html >
@@ -560,7 +618,7 @@ export default function JudgmentPage() {
                                                                         : program.status === "Scheduled"
                                                                             ? "bg-blue-500 text-white"
                                                                             : "bg-gray-200 text-black"
-                                                                }`}
+                                                                } `}
                                                         >
                                                             <SelectValue placeholder="Status" />
                                                         </SelectTrigger>
@@ -593,7 +651,7 @@ export default function JudgmentPage() {
                                                                         : program.resultStatus === "published"
                                                                             ? "bg-purple-500 text-white"
                                                                             : "bg-gray-200 text-black"
-                                                                    }`}
+                                                                    } `}
                                                             >
                                                                 <SelectValue placeholder="Result Status" />
                                                             </SelectTrigger>
@@ -606,7 +664,7 @@ export default function JudgmentPage() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Link href={`/admin/judgment/${program._id}`}>
+                                                    <Link href={`/ admin / judgment / ${program._id} `}>
                                                         <Button variant="outline" size="sm">
                                                             <Edit className="mr-2 h-4 w-4" />
                                                             Mark Entry

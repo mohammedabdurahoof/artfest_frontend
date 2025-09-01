@@ -42,9 +42,9 @@ export interface Team {
   leader: Student
   asstLeaders: Student[]
   userId: User | null
-  totalPoint: number
+  totalPoint: { [key in ResultStatus]: number }
   categoriesPoint: {
-    [key in Category]: number
+    [key in Category]: { [key in ResultStatus]: number }
   }
   createdAt: string
   updatedAt: string
