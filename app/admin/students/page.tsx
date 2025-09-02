@@ -169,9 +169,12 @@ export default function StudentsPage() {
   }
 
   const totalStudents = students.length
-  const totalPoints = students.reduce((sum, student) => sum + student.totalPoint, 0)
+  const totalPoints = students.reduce(
+    (sum, student) => sum + (student.totalPoint?.published || 0),
+    0
+  );
   const topStudent = students.reduce(
-    (top, student) => (student.totalPoint > (top?.totalPoint || 0) ? student : top),
+    (top, student) => (student.totalPoint?.published > (top?.totalPoint?.published || 0) ? student : top),
     null as Student | null,
   )
 
@@ -207,7 +210,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Stats Cards */}
-      {/* <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -226,7 +229,7 @@ export default function StudentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{topStudent?.name || "N/A"}</div>
             <p className="text-xs text-muted-foreground">
-              {topStudent ? `${topStudent.totalPoint} points` : "No data"}
+              {topStudent ? `${topStudent.totalPoint.published} points` : "No data"}
             </p>
           </CardContent>
         </Card>
@@ -240,7 +243,7 @@ export default function StudentsPage() {
             <p className="text-xs text-muted-foreground">Across all students</p>
           </CardContent>
         </Card>
-      </div> */}
+      </div>
 
       <Card>
         <CardHeader>
