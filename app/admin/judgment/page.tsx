@@ -195,193 +195,263 @@ export default function JudgmentPage() {
                 }, 0);
 
                 printWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="en">
+                    <!DOCTYPE html>
+                    <html lang="en">
 
-            <head>
-            <meta charset="UTF-8">
-            <title>Mafeeh - Result</title>
-            <style>
-                body {
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 14px;
-                margin: 40px;
-                color: #000;
-                }
+                    <head>
+                    <meta charset="UTF-8">
+                    <title>Mafeeh - Result</title>
+                    <style>
+                        body {
+                        font-family: Arial, Helvetica, sans-serif;
+                        font-size: 14px;
+                        margin: 40px;
+                        color: #000;
+                        }
 
-                h1,
-                h2,
-                h3 {
-                text-align: center;
-                margin: 0;
-                padding: 0;
-                }
+                        h1,
+                        h2,
+                        h3 {
+                        text-align: center;
+                        margin: 0;
+                        padding: 0;
+                        }
 
-                h1 {
-                font-size: 32px;
-                font-weight: bold;
-                margin-bottom: 5px;
-                }
+                        h1 {
+                        font-size: 32px;
+                        font-weight: bold;
+                        margin-bottom: 5px;
+                        }
 
-                h2 {
-                font-size: 28px;
-                font-weight: normal;
-                margin-bottom: 20px;
-                }
+                        h2 {
+                        font-size: 28px;
+                        font-weight: normal;
+                        margin-bottom: 20px;
+                        }
 
-                table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 25px;
-                }
+                        table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 25px;
+                        }
 
-                th,
-                td {
-                border: 1px solid #000;
-                padding: 6px 10px;
-                text-align: center;
-                }
+                        th,
+                        td {
+                        border: 1px solid #000;
+                        padding: 6px 10px;
+                        text-align: center;
+                        }
 
-                th {
-                background: #f2f2f2;
-                font-weight: bold;
-                 -webkit-print-color-adjust: exact;
-                }
+                        th {
+                        background: #f2f2f2;
+                        font-weight: bold;
+                         -webkit-print-color-adjust: exact;
+                        }
 
-                .section-title {
-                font-size: 14px;
-                font-weight: bold;
-                margin: 25px 0 0px 0;
-                text-align: center;
-                background-color: #000;
-                color: #fff;
-                padding: 7px;
-                 -webkit-print-color-adjust: exact;
-                }
+                        .section-title {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin: 25px 0 0px 0;
+                        text-align: center;
+                        background-color: #000;
+                        color: #fff;
+                        padding: 7px;
+                         -webkit-print-color-adjust: exact;
+                        }
 
-                .footer-note {
-                font-size: 12px;
-                margin-top: 30px;
-                text-align: center;
-                }
-                @media print {
-                    table {
-                        page-break-inside: avoid; /* keep entire table together */
-                    }
-                    tr {
-                        page-break-inside: avoid; /* keep row together */
-                        page-break-after: auto;
-                    }
-                    thead {
-                        display: table-header-group; /* repeat header on each new page */
-                    }
-                    tfoot {
-                        display: table-footer-group; /* repeat footer if needed */
-                    }
-                }
+                        .footer-note {
+                        font-size: 12px;
+                        margin-top: 30px;
+                        text-align: center;
+                        }
+                        @media print {
+                            table {
+                                page-break-inside: avoid; /* keep entire table together */
+                            }
+                            tr {
+                                page-break-inside: avoid; /* keep row together */
+                                page-break-after: auto;
+                            }
+                            thead {
+                                display: table-header-group; /* repeat header on each new page */
+                            }
+                            tfoot {
+                                display: table-footer-group; /* repeat footer if needed */
+                            }
+                        }
 
-                .grand-total-table {
-                    width: 50%;
-                }
-                .grand-total {
-                    font-weight: bold;
-                    text-align: center;
-                    display: flex;
-                    justify-content: center;  /* Horizontal center */
-                    align-items: center; /* Vertical center */
-                }
+                        .grand-total-table {
+                            width: 50%;
+                        }
 
-            </style>
-            </head>
+                        .grand-total {
+                            font-weight: bold;
+                            text-align: center;
+                            display: flex;
+                            justify-content: center;  /* Horizontal center */
+                            align-items: center; /* Vertical center */
+                        }
+                        .category-total {
+                            font-weight: bold;
+                            text-align: center;
+                            display: flex;
+                            flex-wrap: wrap;
+                            justify-content: center;  /* Horizontal center */
+                            align-items: center; /* Vertical center */
+                            gap: 10px;
+                        }
 
-            <body>
-            <h1>MAFEEH 2025</h1>
-            <h2>NAHJ ART FEST</h2>
-            <h3>RESULTS (${resultStatusFilter})</h3>
+                        .category-total > table {
+                            width: 48%;
+                        }
+                    </style>
+                    </head>
 
-            ${result.data.data.map((data: { program: Program, participations: Participation[] }) => {
-                    // Sort participations by position.rank, then grade?.category
-                    const sortedParticipations = [...data.participations].sort((a, b) => {
-                        const rankA = a.position?.rank ?? 9999;
-                        const rankB = b.position?.rank ?? 9999;
-                        if (rankA !== rankB) return rankA - rankB;
-                        const gradeA = a.grade?.category ?? '';
-                        const gradeB = b.grade?.category ?? '';
-                        return gradeA.localeCompare(gradeB);
-                    });
-                    return `
-            <table>
-            <thead>
-                <tr>
-                    <th class="section-title" colspan="5">
-                        ${data.program.programCode} - ${data.program.name} | ${data.program.category}
-                    </th>
-                </tr>
-                <tr>
-                    <th>Position</th>
-                    <th>Grade</th>
-                    <th>Chest No.</th>
-                    <th>Name</th>
-                    <th>Team</th>
-                </tr>
-                </thead>
-                <tbody>
-                ${sortedParticipations.map((participation: Participation) => `
-                    <tr>
-                        <td>${participation.position?.rank || '-'}</td>
-                        <td>${participation.grade?.category || '-'}</td>
-                        <td>${participation.candidateId[0].chestNo}</td>
-                        <td>${participation.candidateId[0].name}${participation.candidateId[1] ? ' & Team' : ''}</td>
-                        <td>${participation.team.name}</td>
-                    </tr>
-                `).join('')}
-                </tbody>
-            </table>`;
-                }).join('')}
+                    <body>
+                    <h1>MAFEEH 2025</h1>
+                    <h2>NAHJ ART FEST</h2>
+                    <h3>RESULTS (${resultStatusFilter})</h3>
 
-                <h4>Total Points : ${totalPoints}</h4>
-                <h4>No of Programs : ${(filteredPrograms.length ?? 0) + (resultStatusFilter !== 'published' ? programs.filter(p => p.resultStatus === 'published').length : 0)}</h4>
-              
-            <div class="grand-total">
-                <table class="grand-total-table">
-            <thead>
-                <tr>
-                    <th class="section-title" colspan="5">
-                        Grand Total
-                    </th>
-                </tr>
-                <tr>
-                    <th>Position</th>
-                    <th>Team</th>
-                    <th>Points</th>
-                </tr>
-                </thead>
-                <tbody>
-                ${sortedTeams.map((team: Team, index: number) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${team.name || '-'}</td>
-                        <td>
-                            ${resultStatusFilter === 'all'
-                        ? (team.totalPoint?.completed ?? 0) +
-                        (team.totalPoint?.archived ?? 0) +
-                        (team.totalPoint?.published ?? 0)
-                        : (team.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? team.totalPoint?.published ?? 0 : 0)
-                    }
-                        </td>
-            
-                    </tr>
-                `).join('')}
-                </tbody>
-            </table>
-            </div>
-            <div class="footer-note">
-            Result Generated @ ${new Date().toLocaleString()}
-        </div>
-            </body >
+                    ${(() => {
+                        // Group programs in pairs of 2 for each row
+                        const programTables = result.data.data.map((data: { program: Program, participations: Participation[] }) => {
+                            // Sort participations by position.rank, then grade?.category
+                            const sortedParticipations = [...data.participations].sort((a, b) => {
+                                const rankA = a.position?.rank ?? 9999;
+                                const rankB = b.position?.rank ?? 9999;
+                                if (rankA !== rankB) return rankA - rankB;
+                                const gradeA = a.grade?.category ?? '';
+                                const gradeB = b.grade?.category ?? '';
+                                return gradeA.localeCompare(gradeB);
+                            });
+                            return `
+                                <table>
+                                <thead>
+                                    <tr>
+                                        <th class="section-title" colspan="5">
+                                            ${data.program.programCode} - ${data.program.name} | ${data.program.category}
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Grade</th>
+                                        <th>Chest No.</th>
+                                        <th>Name</th>
+                                        <th>Team</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    ${sortedParticipations.map((participation: Participation) => `
+                                        <tr>
+                                            <td>${participation.position?.rank || '-'}</td>
+                                            <td>${participation.grade?.category || '-'}</td>
+                                            <td>${participation.candidateId[0].chestNo}</td>
+                                            <td>${participation.candidateId[0].name}${participation.candidateId[1] ? ' & Team' : ''}</td>
+                                            <td>${participation.team.name}</td>
+                                        </tr>
+                                    `).join('')}
+                                    </tbody>
+                                </table>`;
+                        });
 
-            </html >
-        `);
+                        // Group tables in pairs
+                        let html = '';
+                        for (let i = 0; i < programTables.length; i += 2) {
+                            html += `<div class="programs-row">`;
+                            html += programTables[i];
+                            if (programTables[i + 1]) html += programTables[i + 1];
+                            html += `</div>`;
+                        }
+                        return html;
+                    })()}
+
+                        <h4 style="text-align: center; font-size: 24px;">No of Programs : ${(filteredPrograms.length ?? 0) + (resultStatusFilter !== 'published' ? programs.filter(p => p.resultStatus === 'published').length : 0)}</h4>
+                        <h4 style="text-align: center; font-size: 24px;">Total Points : ${totalPoints}</h4>
+
+                    <div class="grand-total">
+                        <table class="grand-total-table">
+                    <thead>
+                        <tr>
+                            <th class="section-title" colspan="5">
+                                Grand Total
+                            </th>
+                        </tr>
+                        <tr>
+                            <th>Position</th>
+                            <th>Team</th>
+                            <th>Points</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        ${sortedTeams.map((team: Team, index: number) => `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${team.name || '-'}</td>
+                                <td>
+                                    ${resultStatusFilter === 'all'
+                            ? (team.totalPoint?.completed ?? 0) +
+                            (team.totalPoint?.archived ?? 0) +
+                            (team.totalPoint?.published ?? 0)
+                            : (team.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? team.totalPoint?.published ?? 0 : 0)
+                        }
+                                </td>
+                        
+                            </tr>
+                        `).join('')}
+                        </tbody>
+                    </table>
+                    </div>
+                    <div class="category-total">
+
+                    ${categories.filter(c => c !== 'all').map(category => `<table class="grand-total-table">
+                                <thead>
+                                    <tr>
+                                        <th class="section-title" colspan="5">
+                                            ${category}
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Team</th>
+                                        <th>Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                ${sortedTeams.map((team: Team, index: number) => {
+                                // Calculate points for this category and resultStatusFilter
+                                let categoryPoints = 0;
+                                if (team.categoriesPoint && team.categoriesPoint[category]) {
+                                    if (resultStatusFilter === 'all') {
+                                        categoryPoints =
+                                            (team.categoriesPoint[category]?.completed ?? 0) +
+                                            (team.categoriesPoint[category]?.archived ?? 0) +
+                                            (team.categoriesPoint[category]?.published ?? 0);
+                                    } else {
+                                        categoryPoints =
+                                            (team.categoriesPoint[category]?.[resultStatusFilter] ?? 0) +
+                                            (resultStatusFilter !== 'published' ? team.categoriesPoint[category]?.published ?? 0 : 0);
+                                    }
+                                }
+                                return `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td>${team.name || '-'}</td>
+                                            <td>${categoryPoints}</td>
+                                        </tr>
+                                    `;
+                            }).join('')}
+                            </tbody>
+                            </table>`
+                        ).join('')}
+                    </div>
+                    
+                    <div class="footer-note">
+                    Result Generated @ ${new Date().toLocaleString()}
+                </div>
+                    </body >
+
+                    </html >
+                `);
                 printWindow.document.close();
                 printWindow.focus();
                 // printWindow.print();
