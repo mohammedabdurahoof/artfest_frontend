@@ -147,7 +147,15 @@ export default function ProgramJudgmentPage() {
             indexToPosition[item.idx] = 1;
         } else {
             const prev = sorted[rank - 1];
-            indexToPosition[item.idx] = item.total === prev.total ? indexToPosition[prev.idx] : rank + 1;
+            // If same total, assign same position as previous
+            if (item.total === prev.total) {
+            indexToPosition[item.idx] = indexToPosition[prev.idx];
+            } else {
+            // Position is count of unique totals so far + 1
+            const uniqueTotals = sorted.slice(0, rank).map(i => i.total);
+            const position = Array.from(new Set(uniqueTotals)).length + 1;
+            indexToPosition[item.idx] = position;
+            }
         }
     });
 
