@@ -283,7 +283,7 @@ export default function TeamsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {teams.length > 0
-                ? teams.reduce((prev, current) => (prev.totalPoint > current.totalPoint ? prev : current)).name
+                ? teams.reduce((prev, current) => (prev.totalPoint.published > current.totalPoint.published ? prev : current)).name
                 : "N/A"}
             </div>
           </CardContent>

@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Grade, Judgment, Participation, Position, Program } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { se } from "date-fns/locale";
-import { it } from "node:test";
-import { Arrow } from "@radix-ui/react-tooltip";
 import { ArrowLeft } from "lucide-react";
 
 export default function ProgramJudgmentPage() {

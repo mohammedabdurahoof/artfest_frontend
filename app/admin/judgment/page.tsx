@@ -13,6 +13,7 @@ import { Search, Edit, FileText, Clock, Filter, X, Printer } from "lucide-react"
 import Link from "next/link"
 import { Judgment, Participation, Program, Team } from "@/types"
 import { MultiSelect } from "@/components/ui/multiselect" // You need to implement or use a multiselect component
+import { useAuth } from "@/components/auth-provider"
 
 
 export default function JudgmentPage() {
@@ -35,6 +36,8 @@ export default function JudgmentPage() {
         fetchParticipations()
         fetchPrograms()
     }, [])
+
+    const { hasPermission } = useAuth()
 
     const fetchJudgments = async () => {
         try {
@@ -188,7 +191,7 @@ export default function JudgmentPage() {
 
                 // Calculate total points of all teams
                 const totalPoints = sortedTeams.reduce((sum, team) => {
-                    return sum + (team.totalPoint?.[resultStatusFilter] ?? 0);
+                    return sum + (team.totalPoint?.[resultStatusFilter] ?? 0) + (resultStatusFilter !== 'published' ? team.totalPoint?.published ?? 0 : 0);
                 }, 0);
 
                 printWindow.document.write(`
@@ -337,13 +340,14 @@ export default function JudgmentPage() {
                 }).join('')}
 
                 <h4>Total Points : ${totalPoints}</h4>
-                <h4>No of Programs : ${filteredPrograms.length}</h4>
+                <h4>No of Programs : ${(filteredPrograms.length ?? 0) + (resultStatusFilter !== 'published' ? programs.filter(p => p.resultStatus === 'published').length : 0)}</h4>
+              
             <div class="grand-total">
                 <table class="grand-total-table">
             <thead>
                 <tr>
                     <th class="section-title" colspan="5">
-                        Grand Total (${resultStatusFilter})
+                        Grand Total
                     </th>
                 </tr>
                 <tr>
@@ -432,54 +436,82 @@ export default function JudgmentPage() {
             </div>
 
             {/* Team Points Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Team Points</CardTitle>
-                    <CardDescription>
-                        Showing team points for result status: <b>{resultStatusDisplay}</b>
-                        {categoryDisplay !== "All" && (
-                            <> &nbsp;|&nbsp; Category: <b>{categoryDisplay}</b></>
-                        )}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex gap-4 mb-4">
-                        <MultiSelect
-                            options={resultStatuses.filter(s => s !== "all")}
-                            selected={selectedResultStatuses}
-                            onChange={setSelectedResultStatuses}
-                            placeholder="Select Result Status(es)"
-                        />
-                        <MultiSelect
-                            options={categories.filter(c => c !== "all")}
-                            selected={selectedCategories}
-                            onChange={setSelectedCategories}
-                            placeholder="Select Category(ies)"
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {teamPoints.map(team => (
-                            <Card key={team._id} className="border shadow-sm">
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-lg font-bold">{team.name}</CardTitle>
-                                    <Badge variant="outline">{team.color}</Badge>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">
-                                        {selectedResultStatuses.length === 0 || selectedResultStatuses.includes("all")
-                                            ? Object.values(team.totalPoint || {}).reduce((a, b) => a + b, 0)
-                                            : selectedResultStatuses.reduce((sum, status) => sum + (team.totalPoint?.[status] ?? 0), 0)
-                                        }
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        Points ({resultStatusDisplay})
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+            {hasPermission('view_team_points') && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Team Points</CardTitle>
+                        <CardDescription>
+                            Showing team points for result status: <b>{resultStatusDisplay}</b>
+                            {categoryDisplay !== "All" && (
+                                <> &nbsp;|&nbsp; Category: <b>{categoryDisplay}</b></>
+                            )}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-4 mb-4">
+                            <MultiSelect
+                                options={resultStatuses.filter(s => s !== "all")}
+                                selected={selectedResultStatuses.filter(s => s !== "all")}
+                                onChange={setSelectedResultStatuses}
+                                placeholder="Select Result Status(es)"
+                            />
+                            <MultiSelect
+                                options={categories.filter(c => c !== "all")}
+                                selected={selectedCategories.filter(s => s !== "all")}
+                                onChange={setSelectedCategories}
+                                placeholder="Select Category(ies)"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {selectedResultStatuses.length === 0 || selectedCategories.length === 0 ? (
+                                <div className="col-span-3 text-center text-muted-foreground">
+                                    No selection. Points: 0
+                                </div>
+                            ) : (
+                                teamPoints.map(team => (
+                                    <Card key={team._id} className="border shadow-sm">
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-lg font-bold">{team.name}</CardTitle>
+                                            <Badge variant="outline">{team.color}</Badge>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-2xl font-bold">
+                                                {selectedResultStatuses.length === 0 || selectedCategories.length === 0
+                                                    ? 0
+                                                    : selectedResultStatuses.reduce((sum, status) => sum + (team.totalPoint?.[status] ?? 0), 0)
+                                                }
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Points ({selectedResultStatuses.join(" + ") || "None"})
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {teamPoints.map(team => (
+                                <Card key={team._id} className="border shadow-sm">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-lg font-bold">{team.name}</CardTitle>
+                                        <Badge variant="outline">{team.color}</Badge>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold">
+                                            {selectedResultStatuses.length === 0 || selectedResultStatuses.includes("all")
+                                                ? Object.values(team.totalPoint || {}).reduce((a, b) => a + b, 0)
+                                                : selectedResultStatuses.reduce((sum, status) => sum + (team.totalPoint?.[status] ?? 0), 0)
+                                            }
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Points ({resultStatusDisplay})
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>)}
 
             {/* Programs List for Judgment */}
             <Card>
