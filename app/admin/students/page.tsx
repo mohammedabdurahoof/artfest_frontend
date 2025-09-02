@@ -178,6 +178,24 @@ export default function StudentsPage() {
     null as Student | null,
   )
 
+  // Find toppers by category
+  const categoryToppers = categories.map(category => {
+    const studentsInCategory = students.filter(s => s.category === category);
+    if (studentsInCategory.length === 0) return null;
+    return studentsInCategory.reduce(
+      (top, student) =>
+        (student.totalPoint?.published || 0) > (top?.totalPoint?.published || 0) ? student : top,
+      null as Student | null
+    );
+  }).filter(Boolean);
+
+  // Find overall topper
+  const overallTopper = students.reduce(
+    (top, student) =>
+      (student.totalPoint?.published || 0) > (top?.totalPoint?.published || 0) ? student : top,
+    null as Student | null
+  );
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -445,6 +463,58 @@ export default function StudentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Top Performers Section */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Top Performers</CardTitle>
+          <CardDescription>
+            Toppers from each category and overall topper
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {categoryToppers.map(topper => (
+              <Card key={topper!._id} className="border">
+                <CardHeader>
+                  <CardTitle className="text-lg">{topper!.category} Topper</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="font-bold text-xl">{topper!.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Chest No: {topper!.chestNo} | Class: {topper!.class}
+                  </div>
+                  <div className="mt-2 text-lg">
+                    Points: <span className="font-bold">{topper!.totalPoint?.published || 0}</span>
+                  </div>
+                  <div className="mt-1">
+                    Team: <Badge style={getTeamColor(topper!.team)} className="border">{topper!.team?.name}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {overallTopper && (
+              <Card key="overall-topper" className="border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Overall Topper</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="font-bold text-xl">{overallTopper.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Chest No: {overallTopper.chestNo} | Class: {overallTopper.class}
+                  </div>
+                  <div className="mt-2 text-lg">
+                    Points: <span className="font-bold">{overallTopper.totalPoint?.published || 0}</span>
+                  </div>
+                  <div className="mt-1">
+                    Team: <Badge style={getTeamColor(overallTopper.team)} className="border">{overallTopper.team?.name}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
